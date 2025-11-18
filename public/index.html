@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Banner Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            text-align: center;
+        }
+        h1 {
+            color: white;
+            margin: 20px 0;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .banner-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin: 20px 0;
+            min-height: 700px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        #bannerImage {
+            max-width: 100%;
+            height: auto;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            display: none;
+        }
+        #loading {
+            font-size: 20px;
+            color: #666;
+            padding: 40px;
+        }
+        #downloadBtn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 20px 0;
+            transition: background 0.3s;
+        }
+        #downloadBtn:hover {
+            background: #45a049;
+        }
+        #downloadBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        .info {
+            color: white;
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .status {
+            color: white;
+            margin: 10px 0;
+            padding: 10px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Banner Generator</h1>
+        <div class="status" id="status">🔧 Iniciando...</div>
+        <div class="banner-container">
+            <img id="bannerImage" alt="Banner Gerado">
+            <div id="loading">🔄 Gerando banner...</div>
+        </div>
+        <button id="downloadBtn" disabled>💾 Baixar Banner</button>
+        <div class="info">
+            ⚡ Banner gerado no servidor com fontes customizadas<br>
+            📝 API: /api/generate-banner
+        </div>
+    </div>
+
+    <script>
+        class BannerGenerator {
+            constructor() {
+                this.bannerImage = document.getElementById('bannerImage');
+                this.loading = document.getElementById('loading');
+                this.downloadBtn = document.getElementById('downloadBtn');
+                this.status = document.getElementById('status');
+                
+                this.init();
+            }
+
+            async init() {
+                try {
+                    this.status.textContent = '🚀 Conectando com a API...';
+                    await this.generateBanner();
+                    this.setupDownload();
+                    this.status.textContent = '✅ Banner gerado com sucesso!';
+                } catch (error) {
+                    console.error('Erro:', error);
+                    this.status.textContent = '❌ Erro ao carregar. Tentando novamente...';
+                    this.loading.innerHTML = '❌ Erro ao gerar banner';
+                    setTimeout(() => this.init(), 3000);
+                }
+            }
+
+            async generateBanner() {
+                // Adiciona timestamp para evitar cache
+                const apiUrl = `/api/generate-banner?t=${Date.now()}`;
+                this.status.textContent = '🎨 Gerando banner...';
+                
+                const response = await fetch(apiUrl);
+                if (!response.ok) throw new Error('Erro na API: ' + response.status);
+                
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                
+                this.bannerImage.onload = () => {
+                    this.loading.style.display = 'none';
+                    this.bannerImage.style.display = 'block';
+                    this.downloadBtn.disabled = false;
+                    this.status.textContent = '✅ Banner carregado!';
+                };
+                
+                this.bannerImage.onerror = () => {
+                    throw new Error('Erro ao carregar imagem');
+                };
+                
+                this.bannerImage.src = imageUrl;
+            }
+
+            setupDownload() {
+                this.downloadBtn.addEventListener('click', () => {
+                    const link = document.createElement('a');
+                    link.download = `banner-${Date.now()}.png`;
+                    link.href = this.bannerImage.src;
+                    link.click();
+                });
+            }
+        }
+
+        // Inicia quando a página carrega
+        document.addEventListener('DOMContentLoaded', () => {
+            new BannerGenerator();
+        });
+
+        // Recarrega se der erro de rede
+        window.addEventListener('online', () => {
+            location.reload();
+        });
+    </script>
+</body>
+</html>
