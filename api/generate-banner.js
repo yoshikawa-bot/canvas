@@ -13,7 +13,7 @@ export default async function handler(req, res) {
       loadImage('https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg')
     ]);
 
-    // ---------------------- FUNDO COM OVERLAY ----------------------
+    // ---------------------- FUNDO ----------------------
     ctx.drawImage(bg, 0, 0, W, H);
     
     // Overlay escuro para melhor contraste
@@ -29,7 +29,7 @@ export default async function handler(req, res) {
     const cardX = centerX - cardWidth / 2;
     const cardY = centerY - cardHeight / 2;
 
-    // Fundo do card com blur e bordas arredondadas
+    // Fundo do card com bordas arredondadas
     ctx.save();
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 24);
@@ -37,16 +37,19 @@ export default async function handler(req, res) {
     
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.fillRect(cardX, cardY, cardWidth, cardHeight);
+    ctx.restore(); // IMPORTANTE: Restaurar aqui para não cortar o texto
     
-    // Efeito de sombra
+    // Efeito de sombra (fora do clip)
     ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
     ctx.shadowBlur = 30;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 10;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 24);
     ctx.stroke();
-    ctx.restore();
+    ctx.shadowBlur = 0;
 
     // ---------------------- AVATAR MODERNO ----------------------
     const avatarSize = 180;
@@ -80,7 +83,7 @@ export default async function handler(req, res) {
     const contentWidth = cardWidth - (contentX - cardX) - 60;
 
     // Título
-    ctx.font = "bold 64px 'Segoe UI', Arial, sans-serif";
+    ctx.font = "bold 64px 'Arial', sans-serif";
     ctx.fillStyle = "#2D3748";
     ctx.textAlign = "left";
     
@@ -138,7 +141,7 @@ export default async function handler(req, res) {
     // ---------------------- INFORMAÇÕES DE TEMPO ----------------------
     const timeY = barY + barHeight + 35;
     
-    ctx.font = "bold 32px 'Segoe UI', Arial, sans-serif";
+    ctx.font = "bold 32px 'Arial', sans-serif";
     ctx.fillStyle = "#4A5568";
     
     // Tempo atual
@@ -159,7 +162,7 @@ export default async function handler(req, res) {
     ctx.fillStyle = progressGradient;
     ctx.fill();
     
-    ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
+    ctx.font = "bold 20px 'Arial', sans-serif";
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
