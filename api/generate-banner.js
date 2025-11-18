@@ -7,6 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 try {
+  // Nota: A fonte Inter deve ser carregada no ambiente de execução.
   const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
   if (!GlobalFonts.has('Inter')) {
     GlobalFonts.registerFromPath(fontPath, 'Inter');
@@ -24,14 +25,14 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da musica",
-      channel = "Canal",
+      title = "Título da música em destaque",
+      channel = "Canal de Conteúdo Oficial",
       thumbnail = null,
       currentTime = "1:46",
       totalTime = "3:56"
     } = req.method === "POST" ? req.body : req.query;
 
-    // TAMANHO AUMENTADO
+    // TAMANHO DO CANVAS (1400x900)
     const W = 1400;
     const H = 900;
     const canvas = createCanvas(W, H);
@@ -95,21 +96,21 @@ export default async function handler(req, res) {
     }
 
     // =============================
-    //         CARD CENTRAL MAIOR
+    //         CARD CENTRAL MAIOR (1200x700)
     // =============================
-    const cardW = 1000;  // MAIOR
-    const cardH = 500;   // MAIOR
-    const cardX = (W - cardW) / 2;
-    const cardY = (H - cardH) / 2;
+    const cardW = 1200;  // MAIOR
+    const cardH = 700;   // MAIOR
+    const cardX = (W - cardW) / 2; // Centralizado em X: 100
+    const cardY = (H - cardH) / 2; // Centralizado em Y: 100
 
     // Sombra mais suave
-    ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
-    ctx.shadowBlur = 40;
+    ctx.shadowColor = "rgba(0, 0, 0, 0.3)";
+    ctx.shadowBlur = 50;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 15;
+    ctx.shadowOffsetY = 20;
     
     // Card maior com bordas mais arredondadas
-    ctx.fillStyle = "rgba(255, 255, 255, 0.3)"; // Mais transparente
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)"; // Mais transparente
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, 50); // Bordas mais arredondadas
     ctx.fill();
@@ -119,11 +120,11 @@ export default async function handler(req, res) {
     ctx.shadowBlur = 0;
 
     // =============================
-    //     THUMBNAIL MAIOR
+    //     THUMBNAIL MAIOR (250x250)
     // =============================
-    const coverSize = 160; // MAIOR
-    const coverX = cardX + 50;
-    const coverY = cardY + 50;
+    const coverSize = 250; // MUITO MAIOR
+    const coverX = cardX + 80;
+    const coverY = cardY + 80;
 
     let thumbnailLoaded = false;
 
@@ -137,7 +138,7 @@ export default async function handler(req, res) {
           ctx.save();
           ctx.beginPath();
           // Cantos mais arredondados
-          ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
+          ctx.roundRect(coverX, coverY, coverSize, coverSize, 40);
           ctx.clip();
           ctx.drawImage(img, coverX, coverY, coverSize, coverSize);
           ctx.restore();
@@ -151,13 +152,13 @@ export default async function handler(req, res) {
 
     if (!thumbnailLoaded) {
       // Placeholder maior
-      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+      ctx.fillStyle = "rgba(255, 255, 255, 0.4)";
       ctx.beginPath();
-      ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
+      ctx.roundRect(coverX, coverY, coverSize, coverSize, 40);
       ctx.fill();
 
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 70px Inter"; // MAIOR
+      ctx.font = "bold 120px Inter"; // MUITO MAIOR
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2);
@@ -166,27 +167,28 @@ export default async function handler(req, res) {
     // =============================
     //             TEXTOS MAIORES
     // =============================
-    const textX = coverX + coverSize + 40;
-    let textY = coverY + 35;
+    const textX = coverX + coverSize + 50;
+    let textY = coverY + 60;
 
     // Título MAIOR
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 42px Inter"; // MAIOR
+    ctx.font = "bold 60px Inter"; // MAIOR
     ctx.textAlign = "left";
-    ctx.fillText(truncateText(ctx, title.toLowerCase(), 450), textX, textY);
+    // Ajuste a largura máxima para o novo tamanho do card
+    ctx.fillText(truncateText(ctx, title.toLowerCase(), 700), textX, textY); 
 
     // Canal MAIOR
-    textY += 55;
-    ctx.font = "400 26px Inter"; // MAIOR
+    textY += 80; // Aumento da separação
+    ctx.font = "400 35px Inter"; // MAIOR
     ctx.fillStyle = "#FF62C0";
     ctx.fillText(channel.toLowerCase(), textX, textY);
 
     // =============================
     //     ÍCONE DE CORAÇÃO MAIOR
     // =============================
-    const heartSize = 50; // MAIOR
-    const heartX = cardX + cardW - 70;
-    const heartY = cardY + 70;
+    const heartSize = 80; // MUITO MAIOR
+    const heartX = cardX + cardW - 100;
+    const heartY = cardY + 120; // Posição ajustada
 
     // Coração maior
     ctx.fillStyle = "#FF62C0";
@@ -196,47 +198,48 @@ export default async function handler(req, res) {
     ctx.fillText("❤", heartX, heartY);
 
     // =============================
-    //     BARRA DE PROGRESSO MAIS GROSSA
+    //     BARRA DE PROGRESSO MAIS GROSSA E FIXADA EM 40%
     // =============================
-    const progressY = cardY + cardH - 100;
-    const barW = cardW - 100;
-    const barX = cardX + 50;
+    const progressY = cardY + cardH - 120; // Posição ajustada
+    const barW = cardW - 160; // Largura ligeiramente menor
+    const barX = cardX + 80;
+    const barThickness = 30; // MUITO MAIS GROSSA
 
     // Base da barra MAIS GROSSA
     ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
     ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW, 12, 6); // MAIS GROSSA
+    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Progresso MAIS GROSSO
-    const current = timeToSeconds(currentTime);
-    const total = timeToSeconds(totalTime);
-    const ratio = total > 0 ? Math.min(current / total, 1) : 0.454;
-
+    // Progresso MAIS GROSSO (FIXO em 40% ou 0.4)
+    const fixedRatio = 0.4; // 40% Fixo
+    
     ctx.fillStyle = "#FF6EB4";
     ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW * ratio, 12, 6); // MAIS GROSSA
+    // Usa roundRect para preenchimento, garantindo cantos arredondados
+    ctx.roundRect(barX, progressY, barW * fixedRatio, barThickness, barThickness / 2);
     ctx.fill();
 
     // Cursor/Indicador MAIOR
-    const indicatorX = barX + (barW * ratio);
+    const indicatorSize = 25; // MAIOR
+    const indicatorX = barX + (barW * fixedRatio);
     ctx.fillStyle = "#FF6EB4";
     ctx.beginPath();
-    ctx.arc(indicatorX, progressY + 6, 18, 0, Math.PI * 2); // MAIOR
+    ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
 
     // Borda branca no indicador para melhor visibilidade
     ctx.strokeStyle = "#FFFFFF";
-    ctx.lineWidth = 3;
+    ctx.lineWidth = 5; // Borda mais grossa
     ctx.stroke();
 
     // =============================
     //     INFORMAÇÕES DE TEMPO MAIORES
     // =============================
-    const timeY = progressY + 45;
+    const timeY = progressY + barThickness + 30; // Ajustado para a barra mais grossa
 
     // Tempos MAIORES
-    ctx.font = "500 22px Inter"; // MAIOR
+    ctx.font = "500 30px Inter"; // MAIOR
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "left";
     ctx.fillText(currentTime, barX, timeY);
@@ -268,8 +271,9 @@ function truncateText(ctx, text, maxWidth) {
 }
 
 function timeToSeconds(t) {
+  // Função mantida, mas não é usada para calcular o progresso, que é fixo em 40%
   const p = t.split(':').map(Number);
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-}
+                   }
