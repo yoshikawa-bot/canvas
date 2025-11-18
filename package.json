@@ -1,26 +1,15 @@
 {
   "name": "banner-generator",
   "version": "1.0.0",
-  "description": "Gerador de banners com fontes customizadas",
-  "type": "module",
+  "description": "Gerador de banners com canvas",
+  "main": "index.html",
   "scripts": {
-    "setup": "node scripts/setup-fonts.js",
-    "dev": "npx serve public",
-    "build": "npm run setup",
-    "start": "npm run build && npx serve public"
+    "dev": "npx serve ."
   },
   "dependencies": {
     "@napi-rs/canvas": "^0.1.0"
   },
   "devDependencies": {
     "serve": "^14.0.0"
-  },
-  "keywords": [
-    "banner",
-    "canvas",
-    "api",
-    "vercel"
-  ],
-  "author": "Seu Nome",
-  "license": "MIT"
+  }
 }
