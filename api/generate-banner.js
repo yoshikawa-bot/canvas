@@ -121,10 +121,9 @@ export default async function handler(req, res) {
     ctx.fillText('3:58', barX + barWidth, barY + 35);
 
     //
-    // ---------- ELEMENTOS DECORATIVOS ADICIONAIS ----------
+    // ---------- LINHA DECORATIVA ----------
     //
 
-    // Linha decorativa abaixo do título
     ctx.strokeStyle = '#FBE2A4';
     ctx.lineWidth = 4;
     ctx.beginPath();
@@ -132,11 +131,15 @@ export default async function handler(req, res) {
     ctx.lineTo(820, 320);
     ctx.stroke();
 
-    // Texto de status (opcional)
+    //
+    // ---------- TEXTO YOSHIKAWA BOT NA BORDA INFERIOR ----------
+    //
+
     ctx.font = '700 28px Inter';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
     ctx.textAlign = 'center';
-    ctx.fillText('Em andamento', W / 2, 450);
+    // Posicionado próximo à borda inferior (650px de 700px total)
+    ctx.fillText('Yoshikawa Bot', W / 2, 620);
 
     //
     // ---------- SAÍDA ----------
