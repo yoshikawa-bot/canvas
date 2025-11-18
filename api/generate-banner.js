@@ -1,13 +1,25 @@
-// api/generate-banner.js
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
-import path from 'path'
+import { existsSync } from 'fs'
 
-// Carregar fonte Arial do sistema (mais confiável)
+// Registrar fontes customizadas
 try {
-  GlobalFonts.registerFromSystem('Arial')
-  console.log('Fontes carregadas:', GlobalFonts.getFamilies())
+  const fontPaths = {
+    'Roboto': './fonts/Roboto-Regular.ttf',
+    'Roboto Bold': './fonts/Roboto-Bold.ttf'
+  }
+
+  for (const [fontName, fontPath] of Object.entries(fontPaths)) {
+    if (existsSync(fontPath)) {
+      GlobalFonts.registerFromPath(fontPath, fontName)
+      console.log(`✅ Fonte registrada: ${fontName}`)
+    } else {
+      console.log(`❌ Arquivo não encontrado: ${fontPath}`)
+    }
+  }
+
+  console.log('📝 Fontes disponíveis:', GlobalFonts.getFamilies())
 } catch (error) {
-  console.log('Tentando carregar fontes alternativas...')
+  console.error('❌ Erro ao registrar fontes:', error)
 }
 
 export default async function handler(req, res) {
@@ -49,24 +61,23 @@ export default async function handler(req, res) {
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // ---------------------- TEXTO COM FONTE SEGURA ----------------------
+    // ---------------------- TEXTO COM FONTES CUSTOM ----------------------
     const titleX = avatarX + avatarSize + 50;
     const titleY = avatarY + 80;
 
     // Verificar quais fontes estão disponíveis
     const availableFonts = GlobalFonts.getFamilies();
-    console.log('Fontes disponíveis:', availableFonts);
+    console.log('🎨 Fontes custom disponíveis:', availableFonts);
 
-    // Tentar diferentes fontes
-    let fontFamily = 'Arial';
-    if (!availableFonts.includes('Arial')) {
-      if (availableFonts.includes('DejaVu Sans')) fontFamily = 'DejaVu Sans';
-      else if (availableFonts.includes('Liberation Sans')) fontFamily = 'Liberation Sans';
-      else if (availableFonts.includes('Nimbus Sans')) fontFamily = 'Nimbus Sans';
-      else fontFamily = 'sans-serif';
+    // Usar Roboto Bold se disponível, senão tentar outras
+    let fontFamily = 'Roboto Bold';
+    if (!availableFonts.includes('Roboto Bold')) {
+      if (availableFonts.includes('Arial')) fontFamily = 'Arial';
+      else if (availableFonts.includes('DejaVu Sans')) fontFamily = 'DejaVu Sans';
+      else fontFamily = availableFonts[0] || 'sans-serif';
     }
 
-    console.log('Usando fonte:', fontFamily);
+    console.log('🔤 Usando fonte:', fontFamily);
 
     // TEXTO PRINCIPAL
     ctx.font = `bold 70px ${fontFamily}`;
@@ -131,17 +142,43 @@ export default async function handler(req, res) {
     ctx.strokeText('3:58', barX + barWidth, barY + 50);
     ctx.fillText('3:58', barX + barWidth, barY + 50);
 
+    // Texto de progresso
+    ctx.font = `bold 36px ${fontFamily}`;
+    ctx.fillStyle = '#FBE2A4';
+    ctx.textAlign = 'center';
+    const progressText = `PROGRESSO: ${Math.round(ratio * 100)}%`;
+    ctx.strokeText(progressText, W / 2, barY + 120);
+    ctx.fillText(progressText, W / 2, barY + 120);
+
     // ---------------------- SAÍDA ----------------------
     const buffer = canvas.toBuffer("image/png");
     res.setHeader("Content-Type", "image/png");
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
     res.send(buffer);
 
   } catch (e) {
-    console.error('Erro detalhado:', e);
-    res.status(500).json({ 
-      error: "Erro ao gerar banner",
-      details: e.message,
-      availableFonts: GlobalFonts?.getFamilies?.() || []
-    });
+    console.error('❌ Erro detalhado:', e);
+    
+    // Imagem de erro com diagnóstico
+    const errorCanvas = createCanvas(1200, 700);
+    const errorCtx = errorCanvas.getContext('2d');
+    
+    errorCtx.fillStyle = '#1a202c';
+    errorCtx.fillRect(0, 0, 1200, 700);
+    
+    errorCtx.fillStyle = '#ffffff';
+    errorCtx.font = 'bold 40px sans-serif';
+    errorCtx.textAlign = 'center';
+    errorCtx.fillText('ERRO AO GERAR BANNER', 600, 300);
+    
+    errorCtx.font = 'bold 20px sans-serif';
+    errorCtx.fillText(e.message, 600, 350);
+    
+    const availableFonts = GlobalFonts.getFamilies();
+    errorCtx.fillText(`Fontes disponíveis: ${availableFonts.join(', ')}`, 600, 400);
+    
+    const errorBuffer = errorCanvas.toBuffer("image/png");
+    res.setHeader("Content-Type", "image/png");
+    res.send(errorBuffer);
   }
 }
