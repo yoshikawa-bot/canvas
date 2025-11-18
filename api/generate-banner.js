@@ -24,7 +24,7 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da música",
+      title = "Título da musica",
       channel = "Canal",
       thumbnail = null,
       currentTime = "1:46",
@@ -37,7 +37,7 @@ export default async function handler(req, res) {
     const ctx = canvas.getContext('2d');
 
     // =============================
-    //   FUNDO - CORREÇÃO
+    //   FUNDO - EFEITO BOKEH ROSA
     // =============================
     try {
       // URL alternativa para teste
@@ -60,41 +60,57 @@ export default async function handler(req, res) {
     } catch (e) {
       console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
       
-      // Fallback: gradiente ou cor sólida
-      const gradient = ctx.createLinearGradient(0, 0, W, H);
-      gradient.addColorStop(0, "#1a1a2e");
-      gradient.addColorStop(1, "#16213e");
+      // Fallback: gradiente rosa suave com efeito bokeh
+      const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
+      gradient.addColorStop(0, "#ffb6c1");
+      gradient.addColorStop(0.3, "#ff69b4");
+      gradient.addColorStop(0.6, "#ff1493");
+      gradient.addColorStop(1, "#db7093");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, W, H);
       
-      // Adicionar algum padrão visual para o fallback
-      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
-      for (let i = 0; i < W; i += 50) {
-        for (let j = 0; j < H; j += 50) {
-          ctx.fillRect(i, j, 2, 2);
-        }
+      // Adicionar bolhas para efeito bokeh
+      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
+      for (let i = 0; i < 15; i++) {
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const radius = 20 + Math.random() * 80;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
 
     // =============================
-    //         CARD CENTRAL
+    //         CARD CENTRAL - GLASSMORPHISM
     // =============================
-    const cardW = 1000;
-    const cardH = 520;
+    const cardW = 900;
+    const cardH = 400;
     const cardX = (W - cardW) / 2;
     const cardY = (H - cardH) / 2;
 
-    ctx.fillStyle = "rgba(0,0,0,0.28)";
+    // Sombra suave
+    ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 10;
+    
+    // Card com transparência e bordas muito arredondadas
+    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, cardH, 50);
+    ctx.roundRect(cardX, cardY, cardW, cardH, 40);
     ctx.fill();
+    
+    // Reset da sombra
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
 
     // =============================
-    //     THUMBNAIL / CAPA
+    //     THUMBNAIL / CAPA - CANTO SUPERIOR ESQUERDO
     // =============================
-    const coverSize = 260;
-    const coverX = cardX + 70;
-    const coverY = cardY + 130;
+    const coverSize = 120;
+    const coverX = cardX + 40;
+    const coverY = cardY + 40;
 
     let thumbnailLoaded = false;
 
@@ -107,7 +123,8 @@ export default async function handler(req, res) {
 
           ctx.save();
           ctx.beginPath();
-          ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+          // Cantos muito arredondados como na descrição
+          ctx.roundRect(coverX, coverY, coverSize, coverSize, 25);
           ctx.clip();
           ctx.drawImage(img, coverX, coverY, coverSize, coverSize);
           ctx.restore();
@@ -120,75 +137,95 @@ export default async function handler(req, res) {
     }
 
     if (!thumbnailLoaded) {
-      ctx.fillStyle = "#ffffff22";
+      // Placeholder estilo kawaii
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
       ctx.beginPath();
-      ctx.roundRect(coverX, coverY, coverSize, coverSize, 20);
+      ctx.roundRect(coverX, coverY, coverSize, coverSize, 25);
       ctx.fill();
 
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 120px Inter";
+      ctx.font = "bold 50px Inter";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2 + 10);
+      ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2);
     }
 
     // =============================
-    //             TEXTOS
+    //             TEXTOS - ALINHADOS À DIREITA DA MINIATURA
     // =============================
-    const textX = coverX + coverSize + 80;
-    let textY = coverY + 20;
+    const textX = coverX + coverSize + 30;
+    let textY = coverY + 25;
 
     // Título (em minúsculas como na imagem)
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 54px Inter";
+    ctx.font = "bold 32px Inter";
     ctx.textAlign = "left";
-    ctx.fillText(truncateText(ctx, title, 420), textX, textY);
+    ctx.fillText(truncateText(ctx, title.toLowerCase(), 350), textX, textY);
 
-    // Canal (rosa claro) - em minúsculas
-    textY += 55;
-    ctx.font = "400 30px Inter";
+    // Canal (rosa choque/magenta) - em minúsculas
+    textY += 40;
+    ctx.font = "400 20px Inter";
     ctx.fillStyle = "#FF62C0";
-    ctx.fillText(channel, textX, textY);
-
-    // Coração rosa - posicionado corretamente
-    ctx.font = "bold 60px Inter";
-    ctx.fillStyle = "#FF61C7";
-    ctx.fillText("❤", cardX + cardW - 90, cardY + 90);
+    ctx.fillText(channel.toLowerCase(), textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO
+    //     ÍCONE DE CORAÇÃO - CANTO SUPERIOR DIREITO
     // =============================
-    const progressY = textY + 120;
-    const barW = 420;
-    const barH = 10;
+    const heartSize = 40;
+    const heartX = cardX + cardW - 60;
+    const heartY = cardY + 60;
 
-    // Base
+    // Coração sólido rosa choque
+    ctx.fillStyle = "#FF62C0";
+    ctx.font = `bold ${heartSize}px Inter`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("❤", heartX, heartY);
+
+    // =============================
+    //     BARRA DE PROGRESSO - PARTE INFERIOR CENTRAL
+    // =============================
+    const progressY = cardY + cardH - 80;
+    const barW = cardW - 80;
+    const barX = cardX + 40;
+
+    // Base da barra (branca)
     ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
-    ctx.roundRect(textX, progressY, barW, barH, 5);
+    ctx.roundRect(barX, progressY, barW, 8, 4);
     ctx.fill();
 
-    // Progresso
+    // Progresso (rosa vibrante/choque)
     const current = timeToSeconds(currentTime);
     const total = timeToSeconds(totalTime);
-    const ratio = total > 0 ? Math.min(current / total, 1) : 0;
+    const ratio = total > 0 ? Math.min(current / total, 1) : 0.454; // ~45.4% como na descrição
 
     ctx.fillStyle = "#FF6EB4";
     ctx.beginPath();
-    ctx.roundRect(textX, progressY, barW * ratio, barH, 5);
+    ctx.roundRect(barX, progressY, barW * ratio, 8, 4);
     ctx.fill();
 
-    // Tempos (cores e posições ajustadas)
-    ctx.font = "500 22px Inter";
+    // Cursor/Indicador (círculo rosa)
+    const indicatorX = barX + (barW * ratio);
+    ctx.fillStyle = "#FF6EB4";
+    ctx.beginPath();
+    ctx.arc(indicatorX, progressY + 4, 12, 0, Math.PI * 2);
+    ctx.fill();
+
+    // =============================
+    //     INFORMAÇÕES DE TEMPO
+    // =============================
+    const timeY = progressY + 35;
+
+    // Tempo atual (esquerda, branco)
+    ctx.font = "500 18px Inter";
     ctx.fillStyle = "#FFFFFF";
-
-    // Tempo atual (branco)
     ctx.textAlign = "left";
-    ctx.fillText(currentTime, textX, progressY + 35);
+    ctx.fillText(currentTime, barX, timeY);
 
-    // Tempo total (branco)
+    // Tempo total (direita, branco)
     ctx.textAlign = "right";
-    ctx.fillText(totalTime, textX + barW, progressY + 35);
+    ctx.fillText(totalTime, barX + barW, timeY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -218,4 +255,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-           }
+  }
