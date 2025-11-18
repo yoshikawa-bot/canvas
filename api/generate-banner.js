@@ -31,16 +31,16 @@ export default async function handler(req, res) {
       totalTime = "3:56"
     } = req.method === "POST" ? req.body : req.query;
 
-    const W = 1200;
-    const H = 700;
+    // TAMANHO AUMENTADO
+    const W = 1400;
+    const H = 900;
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
     // =============================
-    //   FUNDO - EFEITO BOKEH ROSA
+    //   FUNDO MAIOR E MAIS ARREDONDADO
     // =============================
     try {
-      // URL alternativa para teste
       const bgUrl = "https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg";
       console.log("Tentando carregar imagem de fundo:", bgUrl);
       
@@ -55,12 +55,24 @@ export default async function handler(req, res) {
       const bg = await loadImage(buffer);
       
       console.log("Imagem de fundo carregada com sucesso");
+      
+      // Fundo arredondado maior
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(50, 50, W - 100, H - 100, 80); // Bordas muito arredondadas
+      ctx.clip();
       ctx.drawImage(bg, 0, 0, W, H);
+      ctx.restore();
       
     } catch (e) {
       console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
       
-      // Fallback: gradiente rosa suave com efeito bokeh
+      // Fallback com fundo arredondado
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(50, 50, W - 100, H - 100, 80);
+      ctx.clip();
+      
       const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
       gradient.addColorStop(0, "#ffb6c1");
       gradient.addColorStop(0.3, "#ff69b4");
@@ -69,36 +81,37 @@ export default async function handler(req, res) {
       ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, W, H);
       
-      // Adicionar bolhas para efeito bokeh
-      ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
-      for (let i = 0; i < 15; i++) {
+      // Bolhas maiores para efeito bokeh
+      ctx.fillStyle = "rgba(255, 255, 255, 0.15)";
+      for (let i = 0; i < 12; i++) {
         const x = Math.random() * W;
         const y = Math.random() * H;
-        const radius = 20 + Math.random() * 80;
+        const radius = 40 + Math.random() * 120;
         ctx.beginPath();
         ctx.arc(x, y, radius, 0, Math.PI * 2);
         ctx.fill();
       }
+      ctx.restore();
     }
 
     // =============================
-    //         CARD CENTRAL - GLASSMORPHISM
+    //         CARD CENTRAL MAIOR
     // =============================
-    const cardW = 900;
-    const cardH = 400;
+    const cardW = 1000;  // MAIOR
+    const cardH = 500;   // MAIOR
     const cardX = (W - cardW) / 2;
     const cardY = (H - cardH) / 2;
 
-    // Sombra suave
-    ctx.shadowColor = "rgba(0, 0, 0, 0.2)";
-    ctx.shadowBlur = 30;
+    // Sombra mais suave
+    ctx.shadowColor = "rgba(0, 0, 0, 0.25)";
+    ctx.shadowBlur = 40;
     ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 10;
+    ctx.shadowOffsetY = 15;
     
-    // Card com transparência e bordas muito arredondadas
-    ctx.fillStyle = "rgba(255, 255, 255, 0.25)";
+    // Card maior com bordas mais arredondadas
+    ctx.fillStyle = "rgba(255, 255, 255, 0.3)"; // Mais transparente
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardW, cardH, 40);
+    ctx.roundRect(cardX, cardY, cardW, cardH, 50); // Bordas mais arredondadas
     ctx.fill();
     
     // Reset da sombra
@@ -106,11 +119,11 @@ export default async function handler(req, res) {
     ctx.shadowBlur = 0;
 
     // =============================
-    //     THUMBNAIL / CAPA - CANTO SUPERIOR ESQUERDO
+    //     THUMBNAIL MAIOR
     // =============================
-    const coverSize = 120;
-    const coverX = cardX + 40;
-    const coverY = cardY + 40;
+    const coverSize = 160; // MAIOR
+    const coverX = cardX + 50;
+    const coverY = cardY + 50;
 
     let thumbnailLoaded = false;
 
@@ -123,8 +136,8 @@ export default async function handler(req, res) {
 
           ctx.save();
           ctx.beginPath();
-          // Cantos muito arredondados como na descrição
-          ctx.roundRect(coverX, coverY, coverSize, coverSize, 25);
+          // Cantos mais arredondados
+          ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
           ctx.clip();
           ctx.drawImage(img, coverX, coverY, coverSize, coverSize);
           ctx.restore();
@@ -137,45 +150,45 @@ export default async function handler(req, res) {
     }
 
     if (!thumbnailLoaded) {
-      // Placeholder estilo kawaii
-      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      // Placeholder maior
+      ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
       ctx.beginPath();
-      ctx.roundRect(coverX, coverY, coverSize, coverSize, 25);
+      ctx.roundRect(coverX, coverY, coverSize, coverSize, 30);
       ctx.fill();
 
       ctx.fillStyle = "#fff";
-      ctx.font = "bold 50px Inter";
+      ctx.font = "bold 70px Inter"; // MAIOR
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2);
     }
 
     // =============================
-    //             TEXTOS - ALINHADOS À DIREITA DA MINIATURA
+    //             TEXTOS MAIORES
     // =============================
-    const textX = coverX + coverSize + 30;
-    let textY = coverY + 25;
+    const textX = coverX + coverSize + 40;
+    let textY = coverY + 35;
 
-    // Título (em minúsculas como na imagem)
+    // Título MAIOR
     ctx.fillStyle = "#FFFFFF";
-    ctx.font = "bold 32px Inter";
+    ctx.font = "bold 42px Inter"; // MAIOR
     ctx.textAlign = "left";
-    ctx.fillText(truncateText(ctx, title.toLowerCase(), 350), textX, textY);
+    ctx.fillText(truncateText(ctx, title.toLowerCase(), 450), textX, textY);
 
-    // Canal (rosa choque/magenta) - em minúsculas
-    textY += 40;
-    ctx.font = "400 20px Inter";
+    // Canal MAIOR
+    textY += 55;
+    ctx.font = "400 26px Inter"; // MAIOR
     ctx.fillStyle = "#FF62C0";
     ctx.fillText(channel.toLowerCase(), textX, textY);
 
     // =============================
-    //     ÍCONE DE CORAÇÃO - CANTO SUPERIOR DIREITO
+    //     ÍCONE DE CORAÇÃO MAIOR
     // =============================
-    const heartSize = 40;
-    const heartX = cardX + cardW - 60;
-    const heartY = cardY + 60;
+    const heartSize = 50; // MAIOR
+    const heartX = cardX + cardW - 70;
+    const heartY = cardY + 70;
 
-    // Coração sólido rosa choque
+    // Coração maior
     ctx.fillStyle = "#FF62C0";
     ctx.font = `bold ${heartSize}px Inter`;
     ctx.textAlign = "center";
@@ -183,47 +196,51 @@ export default async function handler(req, res) {
     ctx.fillText("❤", heartX, heartY);
 
     // =============================
-    //     BARRA DE PROGRESSO - PARTE INFERIOR CENTRAL
+    //     BARRA DE PROGRESSO MAIS GROSSA
     // =============================
-    const progressY = cardY + cardH - 80;
-    const barW = cardW - 80;
-    const barX = cardX + 40;
+    const progressY = cardY + cardH - 100;
+    const barW = cardW - 100;
+    const barX = cardX + 50;
 
-    // Base da barra (branca)
-    ctx.fillStyle = "#FFFFFF";
+    // Base da barra MAIS GROSSA
+    ctx.fillStyle = "rgba(255, 255, 255, 0.6)";
     ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW, 8, 4);
+    ctx.roundRect(barX, progressY, barW, 12, 6); // MAIS GROSSA
     ctx.fill();
 
-    // Progresso (rosa vibrante/choque)
+    // Progresso MAIS GROSSO
     const current = timeToSeconds(currentTime);
     const total = timeToSeconds(totalTime);
-    const ratio = total > 0 ? Math.min(current / total, 1) : 0.454; // ~45.4% como na descrição
+    const ratio = total > 0 ? Math.min(current / total, 1) : 0.454;
 
     ctx.fillStyle = "#FF6EB4";
     ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW * ratio, 8, 4);
+    ctx.roundRect(barX, progressY, barW * ratio, 12, 6); // MAIS GROSSA
     ctx.fill();
 
-    // Cursor/Indicador (círculo rosa)
+    // Cursor/Indicador MAIOR
     const indicatorX = barX + (barW * ratio);
     ctx.fillStyle = "#FF6EB4";
     ctx.beginPath();
-    ctx.arc(indicatorX, progressY + 4, 12, 0, Math.PI * 2);
+    ctx.arc(indicatorX, progressY + 6, 18, 0, Math.PI * 2); // MAIOR
     ctx.fill();
 
-    // =============================
-    //     INFORMAÇÕES DE TEMPO
-    // =============================
-    const timeY = progressY + 35;
+    // Borda branca no indicador para melhor visibilidade
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 3;
+    ctx.stroke();
 
-    // Tempo atual (esquerda, branco)
-    ctx.font = "500 18px Inter";
+    // =============================
+    //     INFORMAÇÕES DE TEMPO MAIORES
+    // =============================
+    const timeY = progressY + 45;
+
+    // Tempos MAIORES
+    ctx.font = "500 22px Inter"; // MAIOR
     ctx.fillStyle = "#FFFFFF";
     ctx.textAlign = "left";
     ctx.fillText(currentTime, barX, timeY);
 
-    // Tempo total (direita, branco)
     ctx.textAlign = "right";
     ctx.fillText(totalTime, barX + barW, timeY);
 
@@ -255,4 +272,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-  }
+}
