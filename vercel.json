@@ -1,7 +1,7 @@
 {
   "functions": {
     "api/generate-banner.js": {
-      "maxDuration": 10,
+      "maxDuration": 30,
       "memory": 1024
     }
   },
@@ -12,6 +12,14 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
+        },
+        {
+          "key": "Access-Control-Allow-Methods",
+          "value": "GET, POST, OPTIONS"
+        },
+        {
+          "key": "Access-Control-Allow-Headers",
+          "value": "Content-Type"
         }
       ]
     }
