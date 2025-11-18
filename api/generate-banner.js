@@ -37,18 +37,43 @@ export default async function handler(req, res) {
     const ctx = canvas.getContext('2d');
 
     // =============================
-    //   FUNDO - AGORA FUNCIONANDO
+    //   FUNDO - CORREÇÃO
     // =============================
     try {
-      const response = await fetch("https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg");
+      // URL alternativa para teste
+      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg";
+      console.log("Tentando carregar imagem de fundo:", bgUrl);
+      
+      const response = await fetch(bgUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
       const arrayBuffer = await response.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       const bg = await loadImage(buffer);
+      
+      console.log("Imagem de fundo carregada com sucesso");
       ctx.drawImage(bg, 0, 0, W, H);
+      
     } catch (e) {
-      console.log("Erro ao carregar imagem de fundo:", e);
-      ctx.fillStyle = "#000";
+      console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
+      
+      // Fallback: gradiente ou cor sólida
+      const gradient = ctx.createLinearGradient(0, 0, W, H);
+      gradient.addColorStop(0, "#1a1a2e");
+      gradient.addColorStop(1, "#16213e");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, W, H);
+      
+      // Adicionar algum padrão visual para o fallback
+      ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+      for (let i = 0; i < W; i += 50) {
+        for (let j = 0; j < H; j += 50) {
+          ctx.fillRect(i, j, 2, 2);
+        }
+      }
     }
 
     // =============================
@@ -165,16 +190,13 @@ export default async function handler(req, res) {
     ctx.textAlign = "right";
     ctx.fillText(totalTime, textX + barW, progressY + 35);
 
-    // Footer - removido conforme a imagem de referência
-    // (a imagem de referência não mostra o footer "Yoshikawa Music Player")
-
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
 
   } catch (e) {
-    console.error(e);
+    console.error("Erro geral:", e);
     res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
   }
 }
@@ -196,4 +218,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-}
+           }
