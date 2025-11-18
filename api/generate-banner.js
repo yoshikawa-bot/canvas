@@ -36,11 +36,24 @@ export default async function handler(req, res) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // Fundo (imagem com blur já aplicado)
-    const bg = await loadImage("https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg");
-    ctx.drawImage(bg, 0, 0, W, H);
+    // =============================
+    //   FUNDO - AGORA FUNCIONANDO
+    // =============================
+    try {
+      const response = await fetch("https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg");
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const bg = await loadImage(buffer);
+      ctx.drawImage(bg, 0, 0, W, H);
+    } catch (e) {
+      console.log("Erro ao carregar imagem de fundo:", e);
+      ctx.fillStyle = "#000";
+      ctx.fillRect(0, 0, W, H);
+    }
 
-    // --- CARD TRANSLÚCIDO ---
+    // =============================
+    //         CARD CENTRAL
+    // =============================
     const cardW = 1000;
     const cardH = 520;
     const cardX = (W - cardW) / 2;
@@ -51,7 +64,9 @@ export default async function handler(req, res) {
     ctx.roundRect(cardX, cardY, cardW, cardH, 50);
     ctx.fill();
 
-    // Thumbnail
+    // =============================
+    //     THUMBNAIL / CAPA
+    // =============================
     const coverSize = 260;
     const coverX = cardX + 70;
     const coverY = cardY + 130;
@@ -74,10 +89,11 @@ export default async function handler(req, res) {
 
           thumbnailLoaded = true;
         }
-      } catch {}
+      } catch (e) {
+        console.log("Erro ao carregar thumbnail:", e);
+      }
     }
 
-    // Fallback
     if (!thumbnailLoaded) {
       ctx.fillStyle = "#ffffff22";
       ctx.beginPath();
@@ -91,7 +107,9 @@ export default async function handler(req, res) {
       ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2 + 10);
     }
 
-    // --- TEXTO (branco) ---
+    // =============================
+    //             TEXTOS
+    // =============================
     const textX = coverX + coverSize + 80;
     let textY = coverY + 20;
 
@@ -101,7 +119,7 @@ export default async function handler(req, res) {
     ctx.textAlign = "left";
     ctx.fillText(truncateText(ctx, title, 420), textX, textY);
 
-    // Canal (rosa fraco)
+    // Canal (rosa claro)
     textY += 55;
     ctx.font = "400 30px Inter";
     ctx.fillStyle = "#FF62C0";
@@ -112,18 +130,20 @@ export default async function handler(req, res) {
     ctx.fillStyle = "#FF61C7";
     ctx.fillText("❤", cardX + cardW - 90, cardY + 90);
 
-    // --- BARRA DE PROGRESSO ---
+    // =============================
+    //     BARRA DE PROGRESSO
+    // =============================
     const progressY = textY + 120;
     const barW = 420;
     const barH = 10;
 
-    // Base branca
+    // Base
     ctx.fillStyle = "#FFFFFF";
     ctx.beginPath();
     ctx.roundRect(textX, progressY, barW, barH, 5);
     ctx.fill();
 
-    // Progresso rosa
+    // Progresso
     const current = timeToSeconds(currentTime);
     const total = timeToSeconds(totalTime);
     const ratio = total > 0 ? Math.min(current / total, 1) : 0;
@@ -143,7 +163,7 @@ export default async function handler(req, res) {
     ctx.textAlign = "right";
     ctx.fillText(totalTime, textX + barW, progressY + 35);
 
-    // Rodapé discreto
+    // Footer
     ctx.font = "400 20px Inter";
     ctx.fillStyle = "#ffffff77";
     ctx.textAlign = "center";
@@ -160,8 +180,9 @@ export default async function handler(req, res) {
   }
 }
 
-
-// --- FUNÇÕES AUXILIARES ---
+// =============================
+//        FUNÇÕES AUXILIARES
+// =============================
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
