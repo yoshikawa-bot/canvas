@@ -1,13 +1,19 @@
 {
   "name": "banner-generator",
   "version": "1.0.0",
-  "description": "Gerador de banners com canvas",
+  "description": "Gerador de banners com canvas integrado com player de música",
   "main": "index.html",
+  "type": "module",
   "scripts": {
-    "dev": "npx serve ."
+    "dev": "npx serve .",
+    "start": "node server.js"
   },
   "dependencies": {
-    "@napi-rs/canvas": "^0.1.0"
+    "@napi-rs/canvas": "^0.1.0",
+    "axios": "^1.6.0",
+    "node-fetch": "^3.3.0",
+    "megajs": "^1.0.0",
+    "yt-search": "^2.10.0"
   },
   "devDependencies": {
     "serve": "^14.0.0"
