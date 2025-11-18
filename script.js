@@ -1,139 +1,59 @@
 class BannerGenerator {
     constructor() {
+        this.bannerImage = document.getElementById('bannerImage');
         this.canvas = document.getElementById('bannerCanvas');
-        this.ctx = this.canvas.getContext('2d');
-        this.images = {
-            background: null,
-            circle: null
-        };
-        this.loaded = 0;
-        this.totalImages = 2;
+        this.loading = document.getElementById('loading');
+        this.downloadBtn = document.getElementById('downloadBtn');
         
         this.init();
     }
 
     async init() {
-        await this.loadImages();
-        this.drawBanner();
-        this.setupDownload();
+        try {
+            await this.loadBannerFromAPI();
+            this.setupDownload();
+        } catch (error) {
+            console.error('Erro ao carregar banner:', error);
+            this.loading.innerHTML = 'Erro ao carregar banner. Tentando novamente...';
+            setTimeout(() => this.init(), 3000);
+        }
     }
 
-    loadImages() {
-        return new Promise((resolve) => {
-            const imageUrls = {
-                background: 'https://yoshikawa-bot.github.io/cache/images/5dfa5fbe.jpg',
-                circle: 'https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg'
-            };
-
-            Object.entries(imageUrls).forEach(([key, url]) => {
-                const img = new Image();
-                img.crossOrigin = 'anonymous';
-                img.onload = () => {
-                    this.images[key] = img;
-                    this.loaded++;
-                    if (this.loaded === this.totalImages) {
-                        resolve();
-                    }
-                };
-                img.onerror = () => {
-                    console.error(`Erro ao carregar imagem: ${url}`);
-                    this.loaded++;
-                    if (this.loaded === this.totalImages) {
-                        resolve();
-                    }
-                };
-                img.src = url;
-            });
-        });
-    }
-
-    drawBanner() {
-        const { width, height } = this.canvas;
+    async loadBannerFromAPI() {
+        // URL da sua API na Vercel
+        const apiUrl = '/api/generate-banner'; // Para local: 'http://localhost:3000/api/generate-banner'
         
-        // Limpar canvas
-        this.ctx.clearRect(0, 0, width, height);
-
-        // Desenhar fundo
-        if (this.images.background) {
-            this.ctx.drawImage(this.images.background, 0, 0, width, height);
-        } else {
-            // Fallback se a imagem não carregar
-            this.ctx.fillStyle = '#2C3E50';
-            this.ctx.fillRect(0, 0, width, height);
+        const response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
         }
 
-        // Desenhar círculo central
-        if (this.images.circle) {
-            const circleSize = 120;
-            const circleX = (width - circleSize) / 2;
-            const circleY = 80;
-            
-            // Sombra do círculo
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.shadowBlur = 10;
-            this.ctx.shadowOffsetY = 5;
-            
-            this.ctx.drawImage(this.images.circle, circleX, circleY, circleSize, circleSize);
-            
-            // Resetar sombra
-            this.ctx.shadowColor = 'transparent';
-            this.ctx.shadowBlur = 0;
-            this.ctx.shadowOffsetY = 0;
-        }
-
-        // Título
-        this.ctx.fillStyle = '#FFFFFF';
-        this.ctx.font = 'bold 48px Arial';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowOffsetY = 4;
+        const blob = await response.blob();
+        const imageUrl = URL.createObjectURL(blob);
         
-        this.ctx.fillText('# Título mostrado', width / 2, 250);
-
-        // Resetar sombra para os horários
-        this.ctx.shadowColor = 'transparent';
-        this.ctx.shadowBlur = 0;
-        this.ctx.shadowOffsetY = 0;
-
-        // Horários
-        this.ctx.fillStyle = '#ECF0F1';
-        this.ctx.font = 'bold 36px Arial';
+        // Esconder loading e mostrar imagem
+        this.bannerImage.src = imageUrl;
+        this.bannerImage.style.display = 'block';
+        this.loading.style.display = 'none';
         
-        // Primeiro horário (esquerda)
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText('1:46', width / 2 - 40, 320);
-        
-        // Segundo horário (direita)
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText('3:58', width / 2 + 40, 320);
-
-        // Linha divisória entre horários
-        this.ctx.strokeStyle = '#ECF0F1';
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(width / 2, 300);
-        this.ctx.lineTo(width / 2, 340);
-        this.ctx.stroke();
+        console.log('Banner carregado com sucesso!');
     }
 
     setupDownload() {
-        document.getElementById('downloadBtn').addEventListener('click', () => {
+        this.downloadBtn.addEventListener('click', () => {
+            // Criar link de download diretamente da imagem
             const link = document.createElement('a');
-            link.download = 'banner.png';
-            link.href = this.canvas.toDataURL('image/png');
+            link.download = 'banner-novo-design.png';
+            link.href = this.bannerImage.src;
             link.click();
         });
+        
+        this.downloadBtn.disabled = false;
     }
 }
 
 // Inicializar quando a página carregar
 document.addEventListener('DOMContentLoaded', () => {
     new BannerGenerator();
-});
-
-// Recarregar banner se as imagens falharem
-window.addEventListener('online', () => {
-    const banner = new BannerGenerator();
 });
