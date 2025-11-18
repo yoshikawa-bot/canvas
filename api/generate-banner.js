@@ -18,80 +18,110 @@ export default async function handler(req, res) {
       loadImage('https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg')
     ]);
 
-    // FUNDO CLARO E LIMPO
-    ctx.fillStyle = '#1A1A1A';
+    // FUNDO COM BLUR SIMULADO
+    ctx.drawImage(bg, 0, 0, W, H);
+    
+    // Overlay colorido
+    ctx.fillStyle = 'rgba(100, 80, 200, 0.3)';
     ctx.fillRect(0, 0, W, H);
 
-    // AVATAR QUADRADO COM SOMBRA
+    // CARTÃO GLASS
+    const cardX = 100;
+    const cardY = 100;
+    const cardWidth = W - 200;
+    const cardHeight = H - 200;
+
+    // Efeito glass
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+    ctx.lineWidth = 1;
+    
+    // Sombra do cartão
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+    ctx.shadowBlur = 20;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 10;
+    
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 30);
+    ctx.fill();
+    ctx.stroke();
+    
+    // Reset shadow
+    ctx.shadowColor = 'transparent';
+
+    // AVATAR COM BORDA GLASS
     const avatarSize = 140;
-    const avatarX = 200;
-    const avatarY = H / 2 - avatarSize / 2;
+    const avatarX = cardX + 60;
+    const avatarY = cardY + (cardHeight - avatarSize) / 2;
 
-    // Sombra
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-    ctx.fillRect(avatarX + 8, avatarY + 8, avatarSize, avatarSize);
-
-    // Avatar quadrado
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.clip();
     ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
+    ctx.restore();
 
-    // Borda sutil
-    ctx.strokeStyle = '#404040';
-    ctx.lineWidth = 3;
-    ctx.strokeRect(avatarX, avatarY, avatarSize, avatarSize);
+    // Borda glass
+    ctx.beginPath();
+    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+    ctx.lineWidth = 4;
+    ctx.stroke();
 
-    // TÍTULO MINIMALISTA
-    ctx.font = '700 56px Inter';
+    // TÍTULO GLASS
+    ctx.font = '700 60px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
-    ctx.fillText('Título mostrado', 380, 250);
+    ctx.fillText('Título mostrado', avatarX + avatarSize + 40, avatarY + 30);
 
-    // BARRA MINIMALISTA
-    const barWidth = 520;
-    const barHeight = 6;
-    const barX = 380;
-    const barY = 350;
+    // BARRA GLASS
+    const barWidth = 480;
+    const barHeight = 16;
+    const barX = avatarX + avatarSize + 40;
+    const barY = avatarY + 100;
 
-    // Fundo da barra
+    // Fundo da barra glass
     ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
-    ctx.fillRect(barX, barY, barWidth, barHeight);
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth, barHeight, 10);
+    ctx.fill();
 
     const current = 106;
     const total = 238;
     const ratio = current / total;
 
     // Barra de progresso
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(barX, barY, barWidth * ratio, barHeight);
+    const progressGradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+    progressGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+    progressGradient.addColorStop(1, 'rgba(255, 255, 255, 0.6)');
+    
+    ctx.fillStyle = progressGradient;
+    ctx.beginPath();
+    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 10);
+    ctx.fill();
 
-    // Marcador circular
+    // Marcador
     const markerX = barX + barWidth * ratio;
     ctx.beginPath();
-    ctx.arc(markerX, barY + barHeight / 2, 8, 0, Math.PI * 2);
+    ctx.arc(markerX, barY + barHeight / 2, 10, 0, Math.PI * 2);
     ctx.fillStyle = '#FFFFFF';
     ctx.fill();
 
     // TEMPOS
-    ctx.font = '700 24px Inter';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '700 26px Inter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.textAlign = 'left';
-    ctx.fillText('1:46', barX, barY + 30);
+    ctx.fillText('1:46', barX, barY + 35);
     
     ctx.textAlign = 'right';
-    ctx.fillText('3:58', barX + barWidth, barY + 30);
+    ctx.fillText('3:58', barX + barWidth, barY + 35);
 
-    // LINHA DIVISÓRIA
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(380, 400);
-    ctx.lineTo(900, 400);
-    ctx.stroke();
-
-    // YOSHIKAWA BOT DISCRETO
-    ctx.font = '700 20px Inter';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
+    // YOSHIKAWA BOT GLASS
+    ctx.font = '700 24px Inter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
     ctx.textAlign = 'center';
-    ctx.fillText('Yoshikawa Bot', W / 2, 650);
+    ctx.fillText('Yoshikawa Bot', W / 2, cardY + cardHeight - 30);
 
     const buffer = canvas.toBuffer("image/png");
     res.setHeader("Content-Type", "image/png");
