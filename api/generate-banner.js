@@ -25,14 +25,18 @@ export default async function handler(req, res) {
       loadImage('https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg')
     ]);
 
-    // FUNDO
+    // FUNDO COM OVERLAY MAIS MODERNO
     ctx.drawImage(bg, 0, 0, W, H);
-
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+    
+    // Gradiente escuro para melhor contraste
+    const gradient = ctx.createLinearGradient(0, 0, W, H);
+    gradient.addColorStop(0, 'rgba(0, 0, 0, 0.5)');
+    gradient.addColorStop(1, 'rgba(0, 0, 0, 0.7)');
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, W, H);
 
-    // AVATAR
-    const avatarSize = 160;
+    // AVATAR COM BORDA MAIS GROSSA
+    const avatarSize = 180;
     const avatarX = 200;
     const avatarY = H / 2 - avatarSize / 2;
 
@@ -43,77 +47,96 @@ export default async function handler(req, res) {
     ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
     ctx.restore();
 
+    // Borda mais grossa e destacada
     ctx.beginPath();
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
     ctx.strokeStyle = '#FBE2A4';
-    ctx.lineWidth = 6;
+    ctx.lineWidth = 8;
     ctx.stroke();
 
     //
     // ---------- TEXTO PRINCIPAL ----------
     //
 
-    ctx.font = '700 60px Inter'; // usando sua fonte Inter
+    ctx.font = '700 64px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
 
-    ctx.fillText('Título mostrado', 400, 250);
+    ctx.fillText('Título mostrado', 420, 240);
 
     //
-    // ---------- BARRA DE PROGRESSO ----------
+    // ---------- BARRA DE PROGRESSO MODERNA ----------
     //
 
-    const barWidth = 500;
-    const barHeight = 16;
-    const barX = 400;
-    const barY = 350;
+    const barWidth = 520;
+    const barHeight = 20;
+    const barX = 420;
+    const barY = 360;
 
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+    // Fundo da barra mais sutil
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth, barHeight, 8);
+    ctx.roundRect(barX, barY, barWidth, barHeight, 12);
     ctx.fill();
 
     const current = 106;
     const total = 238;
     const ratio = current / total;
 
-    ctx.fillStyle = '#FBE2A4';
+    // Barra de progresso com gradiente
+    const progressGradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+    progressGradient.addColorStop(0, '#FBE2A4');
+    progressGradient.addColorStop(1, '#FFD700');
+    
+    ctx.fillStyle = progressGradient;
     ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 8);
+    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 12);
     ctx.fill();
 
+    // Marcador mais destacado e moderno
     const markerX = barX + barWidth * ratio;
     const markerY = barY + barHeight / 2;
 
     ctx.beginPath();
+    ctx.arc(markerX, markerY, 14, 0, Math.PI * 2);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fill();
+    
+    ctx.beginPath();
     ctx.arc(markerX, markerY, 10, 0, Math.PI * 2);
     ctx.fillStyle = '#FBE2A4';
     ctx.fill();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = '#FFFFFF';
-    ctx.stroke();
 
     //
     // ---------- TEXTOS DA BARRA ----------
     //
 
-    ctx.font = '700 28px Inter';
+    ctx.font = '700 32px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
-    ctx.fillText('1:46', barX, barY + 30);
+    ctx.fillText('1:46', barX, barY + 35);
     
     ctx.textAlign = 'right';
-    ctx.fillText('3:58', barX + barWidth, barY + 30);
+    ctx.fillText('3:58', barX + barWidth, barY + 35);
 
     //
-    // ---------- TEXTO EXTRA ----------
+    // ---------- ELEMENTOS DECORATIVOS ADICIONAIS ----------
     //
 
-    ctx.font = '700 24px Inter';
-    ctx.fillStyle = '#FBE2A4';
+    // Linha decorativa abaixo do título
+    ctx.strokeStyle = '#FBE2A4';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    ctx.moveTo(420, 320);
+    ctx.lineTo(820, 320);
+    ctx.stroke();
+
+    // Texto de status (opcional)
+    ctx.font = '700 28px Inter';
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
     ctx.textAlign = 'center';
-    ctx.fillText(`Progresso: ${Math.round(ratio * 100)}%`, W / 2, 450);
+    ctx.fillText('Em andamento', W / 2, 450);
 
     //
     // ---------- SAÍDA ----------
@@ -127,4 +150,4 @@ export default async function handler(req, res) {
     console.error('Erro detalhado:', e);
     res.status(500).json({ error: "Erro ao gerar banner: " + e.message });
   }
-      }
+}
