@@ -42,72 +42,110 @@ export default async function handler(req, res) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // PALETA DE CORES PASTÉIS MODERNA
+    // 1. PALETA DE CORES PASTÉIS DO NOVO DESIGN (Extraídas do rascunho da imagem)
     const colors = {
-      background: '#FAF7F4',
-      accent: '#A8D8EA',
-      secondary: '#FFAAA7',
-      tertiary: '#98DDCA',
-      textPrimary: '#2D3047',
-      textSecondary: '#6D6A75',
-      textMuted: '#96939B',
-      white: '#FFFFFF'
+      // Fundo Gradiente Principal (Azul Claro, Rosa Claro e Branco)
+      bgLightBlue: '#D5E6F5', // Cor mais fria
+      bgLightPink: '#F3E4E9', // Cor mais quente
+      bgStars: 'rgba(255, 255, 255, 0.5)',
+      // Paleta do Cartão
+      cardBackground: '#FFFFFF',
+      // Cores de Destaque (Baseadas no Gradiente da Barra de Progresso/Thumbnail)
+      accentLight: '#99D5E7', // Azul Claro - Início do gradiente
+      accentMid: '#C1E7E3', // Média (Esverdeado)
+      accentDark: '#F7C6D9', // Rosa Pastel - Fim do gradiente
+      // Texto
+      textPrimary: '#2D3047', // Azul Escuro (Para títulos)
+      textSecondary: '#6289A4', // Azul Acinzentado (Para subtextos e infos)
+      textMuted: '#96939B', // Cinza (Para footer)
     };
 
-    // FUNDO GRADIENTE PASTEL MODERNO
+    // --- 2. FUNDO GRADIENTE E ESTRELAS ---
+
+    // Fundo Gradiente
     const bgGradient = ctx.createLinearGradient(0, 0, W, H);
-    bgGradient.addColorStop(0, colors.background);
-    bgGradient.addColorStop(0.5, '#F5F2EF');
-    bgGradient.addColorStop(1, colors.background);
+    bgGradient.addColorStop(0, colors.bgLightBlue);
+    bgGradient.addColorStop(1, colors.bgLightPink);
     ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, W, H);
 
-    // ELEMENTOS DECORATIVOS DE FUNDO
-    ctx.fillStyle = 'rgba(168, 216, 234, 0.1)';
-    ctx.beginPath();
-    ctx.arc(W - 100, 100, 150, 0, Math.PI * 2);
-    ctx.fill();
+    // Desenhar Estrelas (Pontos Decorativos)
+    ctx.fillStyle = colors.bgStars;
+    const numStars = 50;
+    for (let i = 0; i < numStars; i++) {
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const radius = Math.random() * 2 + 1;
+        ctx.beginPath();
+        ctx.arc(x, y, radius, 0, Math.PI * 2);
+        ctx.fill();
+    }
 
-    ctx.fillStyle = 'rgba(255, 170, 167, 0.08)';
-    ctx.beginPath();
-    ctx.arc(100, H - 100, 120, 0, Math.PI * 2);
-    ctx.fill();
+    // --- 3. CARTÃO PRINCIPAL (CENTRALIZADO E COM SOMBRA SUAVE) ---
 
-    // CARTÃO PRINCIPAL COM SOMBRA
-    const cardX = 60;
-    const cardY = 60;
-    const cardWidth = W - 120;
-    const cardHeight = H - 120;
+    const cardWidth = 1050;
+    const cardHeight = 550;
+    const cardX = (W - cardWidth) / 2;
+    const cardY = (H - cardHeight) / 2;
+    const borderRadius = 40;
 
-    // Sombra do cartão
-    ctx.fillStyle = 'rgba(45, 48, 71, 0.05)';
-    ctx.beginPath();
-    ctx.roundRect(cardX + 4, cardY + 4, cardWidth, cardHeight, 25);
-    ctx.fill();
+    // Sombra do cartão (mais sutil e espalhada)
+    ctx.shadowColor = 'rgba(45, 48, 71, 0.1)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 15;
 
     // Cartão principal
-    ctx.fillStyle = colors.white;
+    ctx.fillStyle = colors.cardBackground;
     ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, 25);
+    ctx.roundRect(cardX, cardY, cardWidth, cardHeight, borderRadius);
     ctx.fill();
-
-    // BARRA SUPERIOR COLORIDA
-    const headerGradient = ctx.createLinearGradient(cardX, cardY, cardX + cardWidth, cardY);
-    headerGradient.addColorStop(0, colors.accent);
-    headerGradient.addColorStop(0.5, colors.tertiary);
-    headerGradient.addColorStop(1, colors.secondary);
     
-    ctx.fillStyle = headerGradient;
-    ctx.beginPath();
-    ctx.roundRect(cardX, cardY, cardWidth, 12, 25);
-    ctx.fill();
+    // Resetar a sombra para o resto dos elementos
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 
-    // THUMBNAIL DA MÚSICA (com fallback)
-    const thumbSize = 220;
-    const thumbX = cardX + 60;
-    const thumbY = cardY + 80;
+    // --- 4. THUMBNAIL E ÍCONE DE MÚSICA DECORATIVO ---
+
+    const thumbSize = 180;
+    const thumbX = cardX + 80;
+    const thumbY = cardY + 110;
+    const thumbRadius = 90; // Para formato circular
+
+    // Gradiente de Borda/Fundo do Ícone (igual ao gradiente de progresso)
+    const thumbGradient = ctx.createLinearGradient(thumbX, thumbY, thumbX + thumbSize, thumbY + thumbSize);
+    thumbGradient.addColorStop(0, colors.accentLight);
+    thumbGradient.addColorStop(0.5, colors.accentMid);
+    thumbGradient.addColorStop(1, colors.accentDark);
 
     let thumbnailLoaded = false;
+
+    // Função para desenhar o fallback decorativo (ícone de música)
+    const drawDecorativeFallback = () => {
+        // Círculo maior (com gradiente)
+        ctx.strokeStyle = thumbGradient;
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.arc(thumbX + thumbRadius, thumbY + thumbRadius, thumbRadius - 5, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // Ícone de música no centro (com cores do gradiente)
+        ctx.font = 'bold 50px Inter';
+        ctx.textAlign = 'center';
+        
+        // Sombra sutil no ícone
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetX = 1;
+        ctx.shadowOffsetY = 1;
+        
+        ctx.fillStyle = colors.accentLight;
+        ctx.fillText('🎵', thumbX + thumbRadius, thumbY + thumbRadius + 15);
+        
+        ctx.shadowBlur = 0;
+    };
 
     if (thumbnail) {
       try {
@@ -119,117 +157,89 @@ export default async function handler(req, res) {
           
           ctx.save();
           ctx.beginPath();
-          ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 20);
+          ctx.arc(thumbX + thumbRadius, thumbY + thumbRadius, thumbRadius, 0, Math.PI * 2);
           ctx.clip();
           ctx.drawImage(img, thumbX, thumbY, thumbSize, thumbSize);
           ctx.restore();
           thumbnailLoaded = true;
 
-          // Borda sutil da thumbnail
+          // Borda sutil na thumbnail carregada (mantendo o círculo)
           ctx.strokeStyle = 'rgba(45, 48, 71, 0.1)';
           ctx.lineWidth = 2;
           ctx.beginPath();
-          ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 20);
+          ctx.arc(thumbX + thumbRadius, thumbY + thumbRadius, thumbRadius, 0, Math.PI * 2);
           ctx.stroke();
+
         }
       } catch (imgError) {
         console.log('Erro ao carregar thumbnail, usando fallback');
       }
     }
 
-    // FALLBACK PARA THUMBNAIL
+    // FALLBACK DECORATIVO
     if (!thumbnailLoaded) {
-      const fallbackUrl = 'https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg';
-      try {
-        const response = await fetch(fallbackUrl);
-        if (response.ok) {
-          const arrayBuffer = await response.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const img = await canvas.loadImage(buffer);
-          
-          ctx.save();
-          ctx.beginPath();
-          ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 20);
-          ctx.clip();
-          ctx.drawImage(img, thumbX, thumbY, thumbSize, thumbSize);
-          ctx.restore();
-          thumbnailLoaded = true;
-
-          ctx.strokeStyle = 'rgba(45, 48, 71, 0.1)';
-          ctx.lineWidth = 2;
-          ctx.beginPath();
-          ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 20);
-          ctx.stroke();
-        }
-      } catch (fallbackError) {
-        console.log('Fallback também falhou, usando elemento decorativo');
-      }
+      drawDecorativeFallback();
     }
 
-    // ELEMENTO DECORATIVO SE NENHUMA THUMBNAIL CARREGOU
-    if (!thumbnailLoaded) {
-      ctx.fillStyle = 'rgba(168, 216, 234, 0.2)';
-      ctx.beginPath();
-      ctx.roundRect(thumbX, thumbY, thumbSize, thumbSize, 20);
-      ctx.fill();
-      
-      ctx.fillStyle = colors.accent;
-      ctx.font = 'bold 48px Inter';
-      ctx.textAlign = 'center';
-      ctx.fillText('🎵', thumbX + thumbSize/2, thumbY + thumbSize/2 + 15);
-    }
 
-    // ÁREA DE CONTEÚDO
+    // --- 5. ÁREA DE CONTEÚDO (DIREITA) ---
+
     const contentX = thumbX + thumbSize + 50;
-    const contentY = cardY + 80;
-    const contentWidth = cardWidth - (contentX - cardX) - 60;
+    const contentY = cardY + 100;
+    const contentWidth = cardX + cardWidth - contentX - 80;
 
     // BADGE "REPRODUZINDO AGORA"
-    ctx.fillStyle = colors.accent;
+    const badgeWidth = 200;
+    const badgeHeight = 32;
+    const badgeRadius = 16;
+    
+    ctx.fillStyle = colors.accentLight; // Use a cor mais clara para o fundo
     ctx.beginPath();
-    ctx.roundRect(contentX, contentY, 220, 36, 18);
+    ctx.roundRect(contentX, contentY, badgeWidth, badgeHeight, badgeRadius);
     ctx.fill();
 
     ctx.font = '600 16px Inter';
-    ctx.fillStyle = colors.white;
+    ctx.fillStyle = colors.cardBackground; // Texto branco no badge
     ctx.textAlign = 'center';
-    ctx.fillText('🎵 REPRODUZINDO AGORA', contentX + 110, contentY + 22);
+    ctx.fillText('🎵 reproduzindo agora', contentX + badgeWidth/2, contentY + 21);
 
-    // TÍTULO DA MÚSICA (com quebra única e ellipsis)
-    ctx.font = '700 46px Inter';
+    // TÍTULO DA MÚSICA
+    const titleY = contentY + 80;
+    ctx.font = '800 52px Inter'; // Fonte mais pesada e maior
     ctx.fillStyle = colors.textPrimary;
     ctx.textAlign = 'left';
     
-    const titleY = contentY + 90;
-    const maxTitleWidth = contentWidth - 40;
-    const truncatedTitle = truncateText(ctx, title, maxTitleWidth, 46);
+    const maxTitleWidth = contentWidth;
+    const truncatedTitle = truncateText(ctx, title, maxTitleWidth, 52);
     ctx.fillText(truncatedTitle, contentX, titleY);
 
-    // INFORMAÇÕES EM GRID
-    const infoStartY = titleY + 100;
-    
-    ctx.font = '500 20px Inter';
+    // INFORMAÇÕES SECUNDÁRIAS (Dois blocos alinhados com espaçamento)
+    const infoStartY = titleY + 50;
+    const infoLineHeight = 35;
+    const col2X = contentX + contentWidth / 2 - 20;
+
+    ctx.font = '500 24px Inter';
     ctx.fillStyle = colors.textSecondary;
+    
+    // Bloco 1 (Duração e Visualizações)
+    ctx.fillText(`⏱️ duração: ${duration}`, contentX, infoStartY);
+    ctx.fillText(`👁️ visualizações: ${views}`, contentX, infoStartY + infoLineHeight);
 
-    // Coluna 1
-    ctx.fillText(`⏱️ Duração: ${duration}`, contentX, infoStartY);
-    ctx.fillText(`👁️ Visualizações: ${views}`, contentX, infoStartY + 40);
+    // Bloco 2 (Postado e Canal)
+    ctx.fillText(`📅 postado: ${timestamp}`, col2X, infoStartY);
+    ctx.fillText(`📺 canal: ${channel}`, col2X, infoStartY + infoLineHeight);
 
-    // Coluna 2
-    const col2X = contentX + 280;
-    ctx.fillText(`📅 Postado: ${timestamp}`, col2X, infoStartY);
-    ctx.fillText(`📺 Canal: ${channel}`, col2X, infoStartY + 40);
 
-    // BARRA DE PROGRESSO
-    const barWidth = contentWidth - 40;
-    const barHeight = 14;
+    // --- 6. BARRA DE PROGRESSO ---
+    const barWidth = contentWidth;
+    const barHeight = 10;
     const barX = contentX;
-    const barY = infoStartY + 120;
+    const barY = infoStartY + 100;
 
-    // Fundo da barra
-    ctx.fillStyle = 'rgba(109, 106, 117, 0.15)';
+    // Fundo da barra (Cor cinza muito clara)
+    ctx.fillStyle = 'rgba(150, 147, 155, 0.1)';
     ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth, barHeight, 8);
+    ctx.roundRect(barX, barY, barWidth, barHeight, 5);
     ctx.fill();
 
     // Calcular progresso
@@ -238,51 +248,61 @@ export default async function handler(req, res) {
     const ratio = totalSeconds > 0 ? Math.min(currentSeconds / totalSeconds, 1) : 0.5;
 
     // Barra de progresso com gradiente
-    const progressGradient = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
-    progressGradient.addColorStop(0, colors.accent);
-    progressGradient.addColorStop(0.5, colors.tertiary);
-    progressGradient.addColorStop(1, colors.secondary);
+    const progressGradientBar = ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+    progressGradientBar.addColorStop(0, colors.accentLight);
+    progressGradientBar.addColorStop(0.5, colors.accentMid);
+    progressGradientBar.addColorStop(1, colors.accentDark);
     
-    ctx.fillStyle = progressGradient;
+    ctx.fillStyle = progressGradientBar;
     ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 8);
+    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 5);
     ctx.fill();
 
     // Marcador circular
     const markerX = barX + barWidth * ratio;
+    const markerRadius = 12;
+    
     ctx.beginPath();
-    ctx.arc(markerX, barY + barHeight / 2, 16, 0, Math.PI * 2);
-    ctx.fillStyle = colors.white;
+    ctx.arc(markerX, barY + barHeight / 2, markerRadius, 0, Math.PI * 2);
+    ctx.fillStyle = colors.cardBackground; // Branco
     ctx.fill();
     
-    ctx.strokeStyle = colors.accent;
-    ctx.lineWidth = 3;
+    // Borda do marcador com o gradiente
+    ctx.strokeStyle = progressGradientBar;
+    ctx.lineWidth = 4;
     ctx.stroke();
 
     // TEMPOS
     const timeY = barY + 45;
     ctx.font = '600 20px Inter';
     ctx.fillStyle = colors.textSecondary;
+    
+    // Tempo atual (Esquerda)
     ctx.textAlign = 'left';
     ctx.fillText(currentTime, barX, timeY);
     
+    // Tempo total (Direita)
     ctx.textAlign = 'right';
     ctx.fillText(totalTime, barX + barWidth, timeY);
 
-    // STATUS
-    ctx.font = '500 18px Inter';
-    ctx.fillStyle = colors.textMuted;
+    // STATUS (Abaixo da barra de progresso)
+    const statusY = timeY + 40;
+    ctx.font = '500 20px Inter';
+    ctx.fillStyle = colors.textSecondary;
     ctx.textAlign = 'left';
-    ctx.fillText('🎶 Tocando agora • Yoshikawa Bot', contentX, barY + 85);
+    ctx.fillText('🎶 tocando agora • Yoshikawa Bot', contentX, statusY);
 
-    // FOOTER ESTILIZADO
-    const footerY = cardY + cardHeight - 40;
+
+    // --- 7. FOOTER ESTILIZADO ---
+
+    const footerY = H - 50;
     
-    ctx.font = '600 22px Inter';
+    ctx.font = '600 24px Inter';
     ctx.fillStyle = colors.textMuted;
     ctx.textAlign = 'center';
-    ctx.fillText('Yoshikawa Bot • Music Player', cardX + cardWidth/2, footerY);
+    ctx.fillText('Yoshikawa Bot • Music Player', W/2, footerY);
 
+    // --- 8. SAÍDA ---
     const buffer = canvas.toBuffer("image/png");
     res.setHeader("Content-Type", "image/png");
     res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
@@ -299,7 +319,7 @@ export default async function handler(req, res) {
 
 // Função para truncar texto com ellipsis em uma linha
 function truncateText(ctx, text, maxWidth, fontSize) {
-  ctx.font = `700 ${fontSize}px Inter`;
+  ctx.font = `800 ${fontSize}px Inter`;
   
   if (ctx.measureText(text).width <= maxWidth) {
     return text;
@@ -311,38 +331,6 @@ function truncateText(ctx, text, maxWidth, fontSize) {
   }
   
   return truncated + '...';
-}
-
-// Função auxiliar para quebra de texto (mantida para compatibilidade)
-function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
-  const words = text.split(' ');
-  let line = '';
-  let lines = 0;
-  let currentY = y;
-
-  for (let n = 0; n < words.length; n++) {
-    const testLine = line + words[n] + ' ';
-    const metrics = ctx.measureText(testLine);
-    const testWidth = metrics.width;
-    
-    if (testWidth > maxWidth && n > 0) {
-      ctx.fillText(line, x, currentY);
-      line = words[n] + ' ';
-      currentY += lineHeight;
-      lines++;
-      
-      // Limitar a 1 linha e adicionar ellipsis
-      if (lines >= 1) {
-        const truncated = truncateText(ctx, line, maxWidth, 46);
-        ctx.fillText(truncated, x, currentY);
-        return lines + 1;
-      }
-    } else {
-      line = testLine;
-    }
-  }
-  ctx.fillText(line, x, currentY);
-  return lines + 1;
 }
 
 // Converter tempo para segundos
