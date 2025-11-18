@@ -3,14 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Banner Generator</title>
+    <title>Banner Generator - Novo Design</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>Banner Generator</h1>
+        <h1>Banner Generator - Novo Design</h1>
         <div class="banner-container">
-            <canvas id="bannerCanvas" width="800" height="400"></canvas>
+            <!-- Agora carregamos a imagem da API -->
+            <img id="bannerImage" alt="Banner Gerado" style="display: none;">
+            <canvas id="bannerCanvas" width="1200" height="700" style="display: none;"></canvas>
+            <div id="loading">Carregando banner...</div>
         </div>
         <button id="downloadBtn">Baixar Banner</button>
     </div>
