@@ -6,7 +6,7 @@ import {
 } from "@napi-rs/canvas";
 
 // Registrar fonte
-const fontPath = path.join(process.cwd(), "public/fonts/Inter-Bold.ttf");
+const fontPath = path.join(process.cwd(), "fonts/Inter_18pt-Bold.ttf");
 if (!GlobalFonts.has("Inter")) {
   GlobalFonts.registerFromPath(fontPath, "Inter");
 }
