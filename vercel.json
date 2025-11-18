@@ -12,8 +12,38 @@
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
         }
       ]
     }
-  ]
+  ],
+  "builds": [
+    {
+      "src": "api/generate-banner.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "scripts/setup-fonts.js",
+      "use": "@vercel/node"
+    },
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/api/generate-banner",
+      "dest": "/api/generate-banner.js"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/public/$1"
+    }
+  ],
+  "buildCommand": "npm run build",
+  "outputDirectory": "public"
 }
