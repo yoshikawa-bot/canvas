@@ -1,12 +1,13 @@
 // api/generate-banner.js
 import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
+import path from 'path'
 
-// Carregar uma fonte do sistema ou usar fallback
+// Carregar fonte Arial do sistema (mais confiável)
 try {
-  // Tenta carregar Arial do sistema
-  GlobalFonts.registerFromSystem('Arial');
+  GlobalFonts.registerFromSystem('Arial')
+  console.log('Fontes carregadas:', GlobalFonts.getFamilies())
 } catch (error) {
-  console.log('Fontes do sistema não disponíveis, usando fallback');
+  console.log('Tentando carregar fontes alternativas...')
 }
 
 export default async function handler(req, res) {
@@ -48,30 +49,37 @@ export default async function handler(req, res) {
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // ---------------------- TEXTO COM VERIFICAÇÃO ----------------------
+    // ---------------------- TEXTO COM FONTE SEGURA ----------------------
     const titleX = avatarX + avatarSize + 50;
     const titleY = avatarY + 80;
 
-    // Verificar se as fontes estão disponíveis
+    // Verificar quais fontes estão disponíveis
     const availableFonts = GlobalFonts.getFamilies();
     console.log('Fontes disponíveis:', availableFonts);
 
-    // Usar uma fonte que sabemos que existe
-    const fontFamily = availableFonts.includes('Arial') ? 'Arial' : 
-                      availableFonts.includes('DejaVu Sans') ? 'DejaVu Sans' : 
-                      'sans-serif';
+    // Tentar diferentes fontes
+    let fontFamily = 'Arial';
+    if (!availableFonts.includes('Arial')) {
+      if (availableFonts.includes('DejaVu Sans')) fontFamily = 'DejaVu Sans';
+      else if (availableFonts.includes('Liberation Sans')) fontFamily = 'Liberation Sans';
+      else if (availableFonts.includes('Nimbus Sans')) fontFamily = 'Nimbus Sans';
+      else fontFamily = 'sans-serif';
+    }
 
-    // TEXTO PRINCIPAL - com fallback
+    console.log('Usando fonte:', fontFamily);
+
+    // TEXTO PRINCIPAL
     ctx.font = `bold 70px ${fontFamily}`;
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
     
-    // Contorno preto para melhor visibilidade
+    // Contorno para garantir visibilidade
     ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.strokeText('TÍTULO MOSTRADO', titleX, titleY);
     
-    // Preenchimento branco
+    // Preenchimento
     ctx.fillText('TÍTULO MOSTRADO', titleX, titleY);
 
     // ---------------------- BARRA DE PROGRESSO ----------------------
@@ -113,24 +121,15 @@ export default async function handler(req, res) {
     ctx.font = `bold 32px ${fontFamily}`;
     ctx.fillStyle = '#FFFFFF';
     
-    // Tempo atual - com contorno
+    // Tempo atual
     ctx.textAlign = 'left';
     ctx.strokeText('1:46', barX, barY + 50);
     ctx.fillText('1:46', barX, barY + 50);
     
-    // Tempo total - com contorno
+    // Tempo total
     ctx.textAlign = 'right';
     ctx.strokeText('3:58', barX + barWidth, barY + 50);
     ctx.fillText('3:58', barX + barWidth, barY + 50);
-
-    // ---------------------- TEXTO DE PROGRESSO ----------------------
-    ctx.font = `bold 36px ${fontFamily}`;
-    ctx.fillStyle = '#FBE2A4';
-    ctx.textAlign = 'center';
-    
-    const progressText = `PROGRESSO: ${Math.round(ratio * 100)}%`;
-    ctx.strokeText(progressText, W / 2, barY + 120);
-    ctx.fillText(progressText, W / 2, barY + 120);
 
     // ---------------------- SAÍDA ----------------------
     const buffer = canvas.toBuffer("image/png");
@@ -139,23 +138,10 @@ export default async function handler(req, res) {
 
   } catch (e) {
     console.error('Erro detalhado:', e);
-    
-    // Imagem de erro com texto usando caminhos
-    const errorCanvas = createCanvas(1200, 700);
-    const errorCtx = errorCanvas.getContext('2d');
-    
-    errorCtx.fillStyle = '#ff6b6b';
-    errorCtx.fillRect(0, 0, 1200, 700);
-    
-    errorCtx.fillStyle = '#ffffff';
-    errorCtx.font = 'bold 40px sans-serif';
-    errorCtx.textAlign = 'center';
-    errorCtx.fillText('ERRO AO GERAR BANNER', 600, 300);
-    errorCtx.font = 'bold 24px sans-serif';
-    errorCtx.fillText(e.message, 600, 350);
-    
-    const errorBuffer = errorCanvas.toBuffer("image/png");
-    res.setHeader("Content-Type", "image/png");
-    res.send(errorBuffer);
+    res.status(500).json({ 
+      error: "Erro ao gerar banner",
+      details: e.message,
+      availableFonts: GlobalFonts?.getFamilies?.() || []
+    });
   }
 }
