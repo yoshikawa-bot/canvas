@@ -1,0 +1,19 @@
+{
+  "functions": {
+    "api/generate-banner.js": {
+      "maxDuration": 10,
+      "memory": 1024
+    }
+  },
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        }
+      ]
+    }
+  ]
+}
