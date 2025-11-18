@@ -1,9 +1,21 @@
-import { createCanvas, loadImage } from '@napi-rs/canvas'
+import path from 'path';
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas';
+
+//
+// ---------- REGISTRO DA FONTE -----------
+//
+
+const fontPath = path.join(process.cwd(), 'public/fonts/Inter-Bold.ttf');
+
+if (!GlobalFonts.has('Inter')) {
+  GlobalFonts.registerFromPath(fontPath, 'Inter');
+}
 
 export default async function handler(req, res) {
   try {
     const W = 1200;
     const H = 700;
+
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
@@ -13,19 +25,17 @@ export default async function handler(req, res) {
       loadImage('https://yoshikawa-bot.github.io/cache/images/ec66fad2.jpg')
     ]);
 
-    // ---------------------- FUNDO ----------------------
+    // FUNDO
     ctx.drawImage(bg, 0, 0, W, H);
-    
-    // Overlay escuro
+
     ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
     ctx.fillRect(0, 0, W, H);
 
-    // ---------------------- AVATAR ----------------------
+    // AVATAR
     const avatarSize = 160;
     const avatarX = 200;
     const avatarY = H / 2 - avatarSize / 2;
 
-    // Avatar com borda
     ctx.save();
     ctx.beginPath();
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
@@ -33,36 +43,37 @@ export default async function handler(req, res) {
     ctx.drawImage(avatar, avatarX, avatarY, avatarSize, avatarSize);
     ctx.restore();
 
-    // Borda do avatar
     ctx.beginPath();
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
     ctx.strokeStyle = '#FBE2A4';
     ctx.lineWidth = 6;
     ctx.stroke();
 
-    // ---------------------- TEXTO SIMPLES ----------------------
-    // CORREÇÃO: Usando 'sans-serif' para garantir compatibilidade no ambiente Vercel.
-    ctx.font = 'bold 60px sans-serif'; 
+    //
+    // ---------- TEXTO PRINCIPAL ----------
+    //
+
+    ctx.font = '700 60px Inter'; // usando sua fonte Inter
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'top';
-    
-    // Texto de título - posição mais baixa
+
     ctx.fillText('Título mostrado', 400, 250);
 
-    // ---------------------- BARRA DE PROGRESSO ----------------------
+    //
+    // ---------- BARRA DE PROGRESSO ----------
+    //
+
     const barWidth = 500;
     const barHeight = 16;
     const barX = 400;
     const barY = 350;
 
-    // Fundo da barra
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.beginPath();
     ctx.roundRect(barX, barY, barWidth, barHeight, 8);
     ctx.fill();
 
-    // Progresso
     const current = 106;
     const total = 238;
     const ratio = current / total;
@@ -72,7 +83,6 @@ export default async function handler(req, res) {
     ctx.roundRect(barX, barY, barWidth * ratio, barHeight, 8);
     ctx.fill();
 
-    // Marcador
     const markerX = barX + barWidth * ratio;
     const markerY = barY + barHeight / 2;
 
@@ -80,32 +90,35 @@ export default async function handler(req, res) {
     ctx.arc(markerX, markerY, 10, 0, Math.PI * 2);
     ctx.fillStyle = '#FBE2A4';
     ctx.fill();
-
     ctx.lineWidth = 3;
     ctx.strokeStyle = '#FFFFFF';
     ctx.stroke();
 
-    // ---------------------- TEXTOS DA BARRA ----------------------
-    // CORREÇÃO: Usando 'sans-serif'.
-    ctx.font = 'bold 28px sans-serif'; 
+    //
+    // ---------- TEXTOS DA BARRA ----------
+    //
+
+    ctx.font = '700 28px Inter';
     ctx.fillStyle = '#FFFFFF';
-    
-    // Tempo atual
     ctx.textAlign = 'left';
     ctx.fillText('1:46', barX, barY + 30);
     
-    // Tempo total
     ctx.textAlign = 'right';
     ctx.fillText('3:58', barX + barWidth, barY + 30);
 
-    // ---------------------- TEXTO DE TESTE EXTRA ----------------------
-    // CORREÇÃO: Usando 'sans-serif'.
-    ctx.font = 'bold 24px sans-serif'; 
+    //
+    // ---------- TEXTO EXTRA ----------
+    //
+
+    ctx.font = '700 24px Inter';
     ctx.fillStyle = '#FBE2A4';
     ctx.textAlign = 'center';
     ctx.fillText(`Progresso: ${Math.round(ratio * 100)}%`, W / 2, 450);
 
-    // ---------------------- SAÍDA ----------------------
+    //
+    // ---------- SAÍDA ----------
+    //
+
     const buffer = canvas.toBuffer("image/png");
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
