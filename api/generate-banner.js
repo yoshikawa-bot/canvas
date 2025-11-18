@@ -24,11 +24,11 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da Música",
-      channel = "Nome do Canal",
+      title = "Título da música",
+      channel = "Canal",
       thumbnail = null,
-      currentTime = "1:30",
-      totalTime = "3:00"
+      currentTime = "1:46",
+      totalTime = "3:56"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1200;
@@ -113,19 +113,19 @@ export default async function handler(req, res) {
     const textX = coverX + coverSize + 80;
     let textY = coverY + 20;
 
-    // Título
+    // Título (em minúsculas como na imagem)
     ctx.fillStyle = "#FFFFFF";
     ctx.font = "bold 54px Inter";
     ctx.textAlign = "left";
     ctx.fillText(truncateText(ctx, title, 420), textX, textY);
 
-    // Canal (rosa claro)
+    // Canal (rosa claro) - em minúsculas
     textY += 55;
     ctx.font = "400 30px Inter";
     ctx.fillStyle = "#FF62C0";
     ctx.fillText(channel, textX, textY);
 
-    // Coração rosa
+    // Coração rosa - posicionado corretamente
     ctx.font = "bold 60px Inter";
     ctx.fillStyle = "#FF61C7";
     ctx.fillText("❤", cardX + cardW - 90, cardY + 90);
@@ -153,21 +153,20 @@ export default async function handler(req, res) {
     ctx.roundRect(textX, progressY, barW * ratio, barH, 5);
     ctx.fill();
 
-    // Tempos
+    // Tempos (cores e posições ajustadas)
     ctx.font = "500 22px Inter";
     ctx.fillStyle = "#FFFFFF";
 
+    // Tempo atual (branco)
     ctx.textAlign = "left";
     ctx.fillText(currentTime, textX, progressY + 35);
 
+    // Tempo total (branco)
     ctx.textAlign = "right";
     ctx.fillText(totalTime, textX + barW, progressY + 35);
 
-    // Footer
-    ctx.font = "400 20px Inter";
-    ctx.fillStyle = "#ffffff77";
-    ctx.textAlign = "center";
-    ctx.fillText("Yoshikawa Music Player", W/2, H - 35);
+    // Footer - removido conforme a imagem de referência
+    // (a imagem de referência não mostra o footer "Yoshikawa Music Player")
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
