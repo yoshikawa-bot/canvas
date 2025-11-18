@@ -1,5 +1,13 @@
 // api/generate-banner.js
-import { createCanvas, loadImage } from '@napi-rs/canvas'
+import { createCanvas, loadImage, GlobalFonts } from '@napi-rs/canvas'
+
+// Carregar uma fonte do sistema ou usar fallback
+try {
+  // Tenta carregar Arial do sistema
+  GlobalFonts.registerFromSystem('Arial');
+} catch (error) {
+  console.log('Fontes do sistema não disponíveis, usando fallback');
+}
 
 export default async function handler(req, res) {
   try {
@@ -17,8 +25,8 @@ export default async function handler(req, res) {
     // ---------------------- FUNDO ----------------------
     ctx.drawImage(bg, 0, 0, W, H);
     
-    // Overlay escuro para contraste
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
+    // Overlay escuro
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
     ctx.fillRect(0, 0, W, H);
 
     // ---------------------- AVATAR ----------------------
@@ -26,7 +34,6 @@ export default async function handler(req, res) {
     const avatarX = 150;
     const avatarY = H / 2 - avatarSize / 2;
 
-    // Avatar com borda
     ctx.save();
     ctx.beginPath();
     ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
@@ -41,29 +48,31 @@ export default async function handler(req, res) {
     ctx.lineWidth = 8;
     ctx.stroke();
 
-    // ---------------------- TEXTO COM FONTE GENÉRICA ----------------------
-    // Usando fonte genérica sem serifa para maior compatibilidade
-    ctx.font = 'bold 70px sans-serif';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    
-    // Texto principal - TESTE VISÍVEL
+    // ---------------------- TEXTO COM VERIFICAÇÃO ----------------------
     const titleX = avatarX + avatarSize + 50;
     const titleY = avatarY + 80;
+
+    // Verificar se as fontes estão disponíveis
+    const availableFonts = GlobalFonts.getFamilies();
+    console.log('Fontes disponíveis:', availableFonts);
+
+    // Usar uma fonte que sabemos que existe
+    const fontFamily = availableFonts.includes('Arial') ? 'Arial' : 
+                      availableFonts.includes('DejaVu Sans') ? 'DejaVu Sans' : 
+                      'sans-serif';
+
+    // TEXTO PRINCIPAL - com fallback
+    ctx.font = `bold 70px ${fontFamily}`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
     
-    // Sombra para melhor legibilidade
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetX = 3;
-    ctx.shadowOffsetY = 3;
+    // Contorno preto para melhor visibilidade
+    ctx.strokeStyle = '#000000';
+    ctx.lineWidth = 4;
+    ctx.strokeText('TÍTULO MOSTRADO', titleX, titleY);
     
+    // Preenchimento branco
     ctx.fillText('TÍTULO MOSTRADO', titleX, titleY);
-    
-    // Remove sombra para outros elementos
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
 
     // ---------------------- BARRA DE PROGRESSO ----------------------
     const barWidth = 600;
@@ -100,56 +109,50 @@ export default async function handler(req, res) {
     ctx.strokeStyle = '#FFFFFF';
     ctx.stroke();
 
-    // ---------------------- TEXTOS DA BARRA ----------------------
-    ctx.font = 'bold 32px sans-serif';
+    // ---------------------- TEXTOS NUMÉRICOS ----------------------
+    ctx.font = `bold 32px ${fontFamily}`;
     ctx.fillStyle = '#FFFFFF';
     
-    // Tempo atual
+    // Tempo atual - com contorno
     ctx.textAlign = 'left';
+    ctx.strokeText('1:46', barX, barY + 50);
     ctx.fillText('1:46', barX, barY + 50);
     
-    // Tempo total
+    // Tempo total - com contorno
     ctx.textAlign = 'right';
+    ctx.strokeText('3:58', barX + barWidth, barY + 50);
     ctx.fillText('3:58', barX + barWidth, barY + 50);
 
     // ---------------------- TEXTO DE PROGRESSO ----------------------
-    ctx.font = 'bold 36px sans-serif';
+    ctx.font = `bold 36px ${fontFamily}`;
     ctx.fillStyle = '#FBE2A4';
     ctx.textAlign = 'center';
-    ctx.fillText(`PROGRESSO: ${Math.round(ratio * 100)}%`, W / 2, barY + 120);
-
-    // ---------------------- TEXTO DE DEBUG ----------------------
-    // Texto extra para garantir que algo aparece
-    ctx.font = 'bold 24px sans-serif';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textAlign = 'right';
-    ctx.fillText('Banner Gerado com Sucesso', W - 30, H - 30);
+    
+    const progressText = `PROGRESSO: ${Math.round(ratio * 100)}%`;
+    ctx.strokeText(progressText, W / 2, barY + 120);
+    ctx.fillText(progressText, W / 2, barY + 120);
 
     // ---------------------- SAÍDA ----------------------
     const buffer = canvas.toBuffer("image/png");
-    
-    // Headers para cache
     res.setHeader("Content-Type", "image/png");
-    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
-    res.setHeader("Pragma", "no-cache");
-    res.setHeader("Expires", "0");
-    
     res.send(buffer);
 
   } catch (e) {
     console.error('Erro detalhado:', e);
     
-    // Retorna uma imagem de erro
+    // Imagem de erro com texto usando caminhos
     const errorCanvas = createCanvas(1200, 700);
     const errorCtx = errorCanvas.getContext('2d');
     
-    errorCtx.fillStyle = '#ff0000';
+    errorCtx.fillStyle = '#ff6b6b';
     errorCtx.fillRect(0, 0, 1200, 700);
     
-    errorCtx.font = 'bold 48px sans-serif';
     errorCtx.fillStyle = '#ffffff';
+    errorCtx.font = 'bold 40px sans-serif';
     errorCtx.textAlign = 'center';
-    errorCtx.fillText('ERRO: ' + e.message, 600, 350);
+    errorCtx.fillText('ERRO AO GERAR BANNER', 600, 300);
+    errorCtx.font = 'bold 24px sans-serif';
+    errorCtx.fillText(e.message, 600, 350);
     
     const errorBuffer = errorCanvas.toBuffer("image/png");
     res.setHeader("Content-Type", "image/png");
