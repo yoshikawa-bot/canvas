@@ -41,8 +41,7 @@ export default async function handler(req, res) {
     ctx.stroke();
 
     // ---------------------- TEXTO SIMPLES ----------------------
-    // Teste básico de texto
-    // CORREÇÃO: Usando 'sans-serif' em vez de 'Arial' para garantir que a fonte seja renderizada no ambiente Vercel.
+    // CORREÇÃO: Usando 'sans-serif' para garantir compatibilidade no ambiente Vercel.
     ctx.font = 'bold 60px sans-serif'; 
     ctx.fillStyle = '#FFFFFF';
     ctx.textAlign = 'left';
