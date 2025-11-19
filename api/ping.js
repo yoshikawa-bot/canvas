@@ -24,8 +24,27 @@ const COLOR_TEXT_TITLE = "#FFFFFF";
 const COLOR_TEXT_PING = "#FFD700";
 const COLOR_TEXT_SUBTITLE = "rgba(255, 255, 255, 0.8)";
 
-export default async function generatePingImage(pingValue) {
+// Função principal do handler HTTP
+export default async function handler(req, res) {
+  // Configurações CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
+    // Obter parâmetros do ping
+    const { ping } = req.method === "POST" ? req.body : req.query;
+    
+    if (!ping) {
+      return res.status(400).json({ error: "Parâmetro 'ping' é obrigatório" });
+    }
+
+    const pingValue = parseInt(ping);
+    
     const W = 1200;
     const H = 600;
     const canvas = createCanvas(W, H);
@@ -164,20 +183,16 @@ export default async function generatePingImage(pingValue) {
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
-    return buffer;
+    
+    res.setHeader('Content-Type', 'image/png');
+    res.setHeader('Cache-Control', 'public, max-age=0');
+    res.send(buffer);
 
   } catch (e) {
     console.error("Erro ao gerar imagem de ping:", e);
-    throw e;
+    res.status(500).json({ 
+      error: "Erro interno do servidor", 
+      message: e.message 
+    });
   }
-}
-
-// Função auxiliar para truncar texto se necessário
-function truncateText(ctx, text, maxWidth) {
-  if (ctx.measureText(text).width <= maxWidth) return text;
-  let tmp = text;
-  while (ctx.measureText(tmp + "...").width > maxWidth && tmp.length > 1) {
-    tmp = tmp.slice(0, -1);
-  }
-  return tmp + "...";
-                  }
+      }
