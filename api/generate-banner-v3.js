@@ -64,7 +64,6 @@ export default async function handler(req, res) {
   try {
     const { 
       title = "Usuário",
-      channel = "Yoshikawa Bot",
       thumbnail = "https://yoshikawa-bot.github.io/cache/images/236744bb.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
@@ -187,7 +186,6 @@ export default async function handler(req, res) {
     const textX = coverX + coverSize + 60;
     let textY = coverY + 150;
 
-    // Título principal - Bem-vindo(a)!
     ctx.fillStyle = COLOR_TEXT_TITLE;
     ctx.font = "bold 80px Inter";
     ctx.textAlign = "left";
@@ -195,24 +193,15 @@ export default async function handler(req, res) {
 
     textY += 120;
 
-    // Nome do usuário (onde era o canal)
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.font = "bold 70px Inter";
     ctx.fillText(truncateText(ctx, title, 650), textX, textY);
-
-    textY += 120;
-
-    // Yoshikawa Bot (onde era o tempo)
-    ctx.font = "bold 50px Inter";
-    ctx.fillStyle = COLOR_TEXT_TIME;
-    ctx.fillText("Yoshikawa Bot", textX, textY);
 
     const progressY = cardY + cardH - 150;
     const barW = 800;
     const barX = cardX + (cardW - barW) / 2;
     const barThickness = 25;
 
-    // Barra de progresso decorativa
     const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
     gradient.addColorStop(0, COLOR_HIGHLIGHT);
     gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
@@ -222,7 +211,6 @@ export default async function handler(req, res) {
     ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Status - Agora é YOSHIKAWA BOT
     const statusY = progressY + barThickness + 45;
     ctx.font = "bold 40px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
@@ -246,4 +234,4 @@ function truncateText(ctx, text, maxWidth) {
     tmp = tmp.slice(0, -1);
   }
   return tmp + "...";
-  }
+      }
