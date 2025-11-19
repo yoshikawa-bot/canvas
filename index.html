@@ -30,6 +30,22 @@
             font-size: 2.5rem;
             text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
+        .design-selector {
+            margin: 20px 0;
+            color: white;
+        }
+        .design-selector label {
+            margin-right: 10px;
+            font-size: 16px;
+        }
+        .design-selector select {
+            padding: 8px 15px;
+            border-radius: 8px;
+            border: none;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+        }
         .banner-container {
             background: white;
             border-radius: 15px;
@@ -76,14 +92,26 @@
 <body>
     <div class="container">
         <h1>🎨 Banner Generator</h1>
+        
+        <div class="design-selector">
+            <label for="designSelect">Escolha o Design:</label>
+            <select id="designSelect">
+                <option value="v1">Design Original</option>
+                <option value="v2">Novo Design Moderno</option>
+            </select>
+        </div>
+
         <div class="banner-container">
-            <img id="bannerImage" alt="Banner Gerado">
+            <img id="bannerImage" alt="Banner Gerado" style="display: none;">
             <div id="loading">🔄 Gerando banner...</div>
         </div>
+        
         <button id="downloadBtn" disabled>💾 Baixar Banner</button>
+        
         <div class="info">
             ⚡ O banner é gerado automaticamente quando a página abre<br>
-            📝 Edite o arquivo api/generate-banner.js para mudar o design
+            📝 Mude o design usando o seletor acima<br>
+            🎨 Cada design tem um estilo único
         </div>
     </div>
 
@@ -93,12 +121,18 @@
                 this.bannerImage = document.getElementById('bannerImage');
                 this.loading = document.getElementById('loading');
                 this.downloadBtn = document.getElementById('downloadBtn');
+                this.designSelect = document.getElementById('designSelect');
                 
                 this.init();
             }
 
             async init() {
                 try {
+                    // Recarregar quando mudar o design
+                    this.designSelect.addEventListener('change', () => {
+                        this.generateBanner();
+                    });
+                    
                     await this.generateBanner();
                     this.setupDownload();
                 } catch (error) {
@@ -109,28 +143,42 @@
             }
 
             async generateBanner() {
+                const selectedDesign = this.designSelect.value;
                 // Adiciona timestamp para evitar cache
-                const apiUrl = `/api/generate-banner?t=${Date.now()}`;
+                const apiUrl = `/api/generate-banner-${selectedDesign}?t=${Date.now()}`;
                 
-                const response = await fetch(apiUrl);
-                if (!response.ok) throw new Error('Erro na API');
+                this.loading.style.display = 'block';
+                this.bannerImage.style.display = 'none';
+                this.downloadBtn.disabled = true;
+                this.loading.innerHTML = `🔄 Gerando banner (Design ${selectedDesign.toUpperCase()})...`;
                 
-                const blob = await response.blob();
-                const imageUrl = URL.createObjectURL(blob);
-                
-                this.bannerImage.onload = () => {
-                    this.loading.style.display = 'none';
-                    this.bannerImage.style.display = 'block';
-                    this.downloadBtn.disabled = false;
-                };
-                
-                this.bannerImage.src = imageUrl;
+                try {
+                    const response = await fetch(apiUrl);
+                    if (!response.ok) throw new Error('Erro na API');
+                    
+                    const blob = await response.blob();
+                    const imageUrl = URL.createObjectURL(blob);
+                    
+                    this.bannerImage.onload = () => {
+                        this.loading.style.display = 'none';
+                        this.bannerImage.style.display = 'block';
+                        this.downloadBtn.disabled = false;
+                    };
+                    
+                    this.bannerImage.src = imageUrl;
+                } catch (error) {
+                    console.error('Erro ao carregar banner:', error);
+                    this.loading.innerHTML = '❌ Erro ao carregar design. Tentando novamente...';
+                    setTimeout(() => this.generateBanner(), 2000);
+                }
             }
 
             setupDownload() {
                 this.downloadBtn.addEventListener('click', () => {
+                    const selectedDesign = this.designSelect.value;
+                    const designName = this.designSelect.options[this.designSelect.selectedIndex].text;
                     const link = document.createElement('a');
-                    link.download = `banner-${Date.now()}.png`;
+                    link.download = `banner-${designName.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.png`;
                     link.href = this.bannerImage.src;
                     link.click();
                 });
