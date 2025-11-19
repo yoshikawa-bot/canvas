@@ -20,8 +20,9 @@ try {
 // =============================
 let COLOR_HIGHLIGHT = "#FF6EB4";
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
+const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
-const COLOR_TEXT_SUBTITLE = "rgba(255, 255, 255, 0.8)";
+const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
 
 // Função para extrair cor predominante da imagem
 function getDominantColor(imageData) {
@@ -60,11 +61,11 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
-// Função para gerar linha de batimento cardíaco
-function generateHeartbeatLine(ctx, x, y, width, height, color, ping) {
+// Função para gerar linha de batimento cardíaco (ilustrativa)
+function generateHeartbeatLine(ctx, x, y, width, height, color) {
   const segments = 12;
   const segmentWidth = width / segments;
-  const baseHeight = height * 0.3;
+  const baseHeight = height * 0.5;
   
   ctx.strokeStyle = color;
   ctx.lineWidth = 8;
@@ -74,9 +75,7 @@ function generateHeartbeatLine(ctx, x, y, width, height, color, ping) {
   ctx.beginPath();
   ctx.moveTo(x, y + baseHeight);
   
-  // Gerar padrão de batimento baseado no ping
-  const pingFactor = Math.min(ping / 100, 2); // Normalizar ping
-  
+  // Padrão fixo de batimento cardíaco (apenas ilustrativo)
   for (let i = 0; i < segments; i++) {
     const segmentX = x + (i * segmentWidth);
     const nextX = segmentX + segmentWidth;
@@ -84,10 +83,10 @@ function generateHeartbeatLine(ctx, x, y, width, height, color, ping) {
     let segmentHeight;
     if (i === 2 || i === 3) {
       // Pico do batimento
-      segmentHeight = baseHeight - (height * 0.6 * (1 - pingFactor * 0.3));
+      segmentHeight = baseHeight - (height * 0.6);
     } else if (i === 6 || i === 7) {
       // Segundo pico menor
-      segmentHeight = baseHeight - (height * 0.4 * (1 - pingFactor * 0.2));
+      segmentHeight = baseHeight - (height * 0.4);
     } else {
       // Linha base
       segmentHeight = baseHeight;
@@ -102,7 +101,7 @@ function generateHeartbeatLine(ctx, x, y, width, height, color, ping) {
   ctx.fillStyle = color;
   [3, 7].forEach(i => {
     const pointX = x + (i * segmentWidth) + (segmentWidth / 2);
-    const pointY = y + baseHeight - (height * (i === 3 ? 0.6 : 0.4) * (1 - pingFactor * 0.3));
+    const pointY = y + baseHeight - (height * (i === 3 ? 0.6 : 0.4));
     ctx.beginPath();
     ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
     ctx.fill();
@@ -120,8 +119,7 @@ export default async function handler(req, res) {
     const { 
       title = "Yoshikawa Bot",
       ping = "0ms",
-      thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg",
-      username = "@kawalyansky"
+      thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1400;
@@ -273,24 +271,24 @@ export default async function handler(req, res) {
     ctx.fillText(`Ping: ${ping}`, textX, textY);
 
     // =============================
-    //     LINHA DE BATIMENTO CARDÍACO
+    //     LINHA DE BATIMENTO CARDÍACO (ILUSTRATIVA)
     // =============================
-    const heartbeatY = cardY + cardH - 180;
-    const heartbeatWidth = 800;
-    const heartbeatHeight = 120;
-    const heartbeatX = cardX + (cardW - heartbeatWidth) / 2;
+    const heartbeatY = cardY + cardH - 150;
+    const barW = 800;
+    const barX = cardX + (cardW - barW) / 2;
+    const heartbeatHeight = 80;
 
-    const pingValue = parseInt(ping) || 0;
-    generateHeartbeatLine(ctx, heartbeatX, heartbeatY, heartbeatWidth, heartbeatHeight, COLOR_HIGHLIGHT, pingValue);
+    // Gerar linha cardíaca ilustrativa
+    generateHeartbeatLine(ctx, barX, heartbeatY, barW, heartbeatHeight, COLOR_HIGHLIGHT);
 
     // =============================
-    //     USUÁRIO
+    //     USUÁRIO @kawalyansky
     // =============================
-    const userY = heartbeatY + heartbeatHeight + 60;
+    const userY = heartbeatY + heartbeatHeight + 50;
     ctx.font = "bold 40px Inter";
-    ctx.fillStyle = COLOR_TEXT_SUBTITLE;
+    ctx.fillStyle = COLOR_TEXT_TIME;
     ctx.textAlign = "center";
-    ctx.fillText(username, cardX + cardW / 2, userY);
+    ctx.fillText("kawalyansky", barX + barW / 2, userY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -310,4 +308,4 @@ function truncateText(ctx, text, maxWidth) {
     tmp = tmp.slice(0, -1);
   }
   return tmp + "...";
-        }
+                                                                       }
