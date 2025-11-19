@@ -18,26 +18,23 @@ try {
 // =============================
 //      CONFIGURAÇÃO DE CORES
 // =============================
-let COLOR_HIGHLIGHT = "#FF6EB4"; // Será sobrescrito pela cor extraída
+let COLOR_HIGHLIGHT = "#FF6EB4";
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
-const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
-const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
+const COLOR_TEXT_SUBTITLE = "rgba(255, 255, 255, 0.8)";
 
 // Função para extrair cor predominante da imagem
 function getDominantColor(imageData) {
   const data = imageData.data;
   const colorCount = {};
   let maxCount = 0;
-  let dominantColor = '#FF6EB4'; // Fallback
+  let dominantColor = '#FF6EB4';
 
-  // Amostrar pixels para performance
-  for (let i = 0; i < data.length; i += 16) { // A cada 4 pixels
+  for (let i = 0; i < data.length; i += 16) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     
-    // Ignorar pixels muito escuros ou muito claros
     const brightness = (r + g + b) / 3;
     if (brightness < 30 || brightness > 220) continue;
     
@@ -63,6 +60,55 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
+// Função para gerar linha de batimento cardíaco
+function generateHeartbeatLine(ctx, x, y, width, height, color, ping) {
+  const segments = 12;
+  const segmentWidth = width / segments;
+  const baseHeight = height * 0.3;
+  
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 8;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  
+  ctx.beginPath();
+  ctx.moveTo(x, y + baseHeight);
+  
+  // Gerar padrão de batimento baseado no ping
+  const pingFactor = Math.min(ping / 100, 2); // Normalizar ping
+  
+  for (let i = 0; i < segments; i++) {
+    const segmentX = x + (i * segmentWidth);
+    const nextX = segmentX + segmentWidth;
+    
+    let segmentHeight;
+    if (i === 2 || i === 3) {
+      // Pico do batimento
+      segmentHeight = baseHeight - (height * 0.6 * (1 - pingFactor * 0.3));
+    } else if (i === 6 || i === 7) {
+      // Segundo pico menor
+      segmentHeight = baseHeight - (height * 0.4 * (1 - pingFactor * 0.2));
+    } else {
+      // Linha base
+      segmentHeight = baseHeight;
+    }
+    
+    ctx.lineTo(nextX, y + segmentHeight);
+  }
+  
+  ctx.stroke();
+  
+  // Adicionar pontos nos picos
+  ctx.fillStyle = color;
+  [3, 7].forEach(i => {
+    const pointX = x + (i * segmentWidth) + (segmentWidth / 2);
+    const pointY = y + baseHeight - (height * (i === 3 ? 0.6 : 0.4) * (1 - pingFactor * 0.3));
+    ctx.beginPath();
+    ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
+    ctx.fill();
+  });
+}
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -73,10 +119,9 @@ export default async function handler(req, res) {
   try {
     const { 
       title = "Yoshikawa Bot",
-      channel = "0ms",
+      ping = "0ms",
       thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg",
-      currentTime = "0:00",
-      totalTime = "0:00"
+      username = "@kawalyansky"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1400;
@@ -225,49 +270,27 @@ export default async function handler(req, res) {
     // Ping (em destaque)
     ctx.font = "bold 60px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.fillText(channel, textX, textY);
+    ctx.fillText(`Ping: ${ping}`, textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO (ESTILIZADA COMO INDICADOR DE STATUS)
+    //     LINHA DE BATIMENTO CARDÍACO
     // =============================
-    const progressY = cardY + cardH - 150;
-    const barW = 800;
-    const barX = cardX + (cardW - barW) / 2;
-    const barThickness = 25;
-    const indicatorSize = 35;
+    const heartbeatY = cardY + cardH - 180;
+    const heartbeatWidth = 800;
+    const heartbeatHeight = 120;
+    const heartbeatX = cardX + (cardW - heartbeatWidth) / 2;
 
-    // Base da barra (sutil)
-    ctx.fillStyle = COLOR_PROGRESS_BASE;
-    ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
-    ctx.fill();
+    const pingValue = parseInt(ping) || 0;
+    generateHeartbeatLine(ctx, heartbeatX, heartbeatY, heartbeatWidth, heartbeatHeight, COLOR_HIGHLIGHT, pingValue);
 
-    // Progresso (com gradiente para efeito moderno)
-    const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
-    gradient.addColorStop(0, COLOR_HIGHLIGHT);
-    gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    
-    // Usar porcentagem fixa para efeito decorativo
-    const filledWidth = barW * 0.7;
-    ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
-    ctx.fill();
-
-    // Indicador de status
-    const indicatorX = barX + filledWidth;
-    ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.beginPath();
-    ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Texto decorativo "ONLINE"
-    const statusY = progressY + barThickness + 45;
+    // =============================
+    //     USUÁRIO
+    // =============================
+    const userY = heartbeatY + heartbeatHeight + 60;
     ctx.font = "bold 40px Inter";
-    ctx.fillStyle = COLOR_TEXT_TIME;
+    ctx.fillStyle = COLOR_TEXT_SUBTITLE;
     ctx.textAlign = "center";
-    ctx.fillText("⚡ ONLINE", barX + barW / 2, statusY);
+    ctx.fillText(username, cardX + cardW / 2, userY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -280,9 +303,6 @@ export default async function handler(req, res) {
   }
 }
 
-// =============================
-//        FUNÇÕES AUXILIARES
-// =============================
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -290,11 +310,4 @@ function truncateText(ctx, text, maxWidth) {
     tmp = tmp.slice(0, -1);
   }
   return tmp + "...";
-}
-
-function timeToSeconds(t) {
-  const p = t.split(':').map(Number);
-  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
-  if (p.length === 2) return p[0] * 60 + p[1];
-  return 0;
-                    }
+        }
