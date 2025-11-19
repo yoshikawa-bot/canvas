@@ -225,49 +225,6 @@ export default async function handler(req, res) {
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //         BOTÕES DE CONTROLE
-    // =============================
-    const controlsY = cardY + cardH - 280;
-    const controlsX = cardX + (cardW - 400) / 2; // Centralizar controles
-    const buttonSize = 70;
-    const buttonSpacing = 100;
-
-    const buttons = [
-      { icon: "⏮", x: controlsX },
-      { icon: "⏸", x: controlsX + buttonSpacing }, // Play/Pause
-      { icon: "⏭", x: controlsX + buttonSpacing * 2 },
-      { icon: "🔀", x: controlsX + buttonSpacing * 3 } // Shuffle
-    ];
-
-    buttons.forEach(button => {
-      // Fundo do botão
-      ctx.fillStyle = `rgba(255, 255, 255, 0.2)`;
-      ctx.beginPath();
-      ctx.arc(button.x, controlsY, buttonSize / 2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ícone do botão
-      ctx.fillStyle = COLOR_HIGHLIGHT;
-      ctx.font = `bold ${buttonSize - 20}px Inter`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(button.icon, button.x, controlsY);
-    });
-
-    // Botão de play/pause central destacado
-    const playButtonSize = 90;
-    ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.beginPath();
-    ctx.arc(controlsX + buttonSpacing, controlsY, playButtonSize / 2, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#FFFFFF";
-    ctx.font = `bold ${playButtonSize - 30}px Inter`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("⏸", controlsX + buttonSpacing, controlsY);
-
-    // =============================
     //     BARRA DE PROGRESSO
     // =============================
     const progressY = cardY + cardH - 150;
@@ -311,14 +268,6 @@ export default async function handler(req, res) {
     ctx.textAlign = "right";
     ctx.fillText(totalTime, barX + barW, timeY);
 
-    // =============================
-    //     INFORMAÇÃO DA COR EXTRAÍDA (debug)
-    // =============================
-    ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.font = "20px Inter";
-    ctx.textAlign = "right";
-    ctx.fillText(`Cor: ${dominantColor}`, cardX + cardW - 30, cardY + 40);
-
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
@@ -347,4 +296,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-    }
+}
