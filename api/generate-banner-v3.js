@@ -63,7 +63,6 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Usuário",
       thumbnail = "https://yoshikawa-bot.github.io/cache/images/236744bb.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
@@ -195,7 +194,7 @@ export default async function handler(req, res) {
 
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.font = "bold 70px Inter";
-    ctx.fillText(truncateText(ctx, title, 650), textX, textY);
+    ctx.fillText("Leia as regras", textX, textY);
 
     const progressY = cardY + cardH - 150;
     const barW = 800;
@@ -234,4 +233,4 @@ function truncateText(ctx, text, maxWidth) {
     tmp = tmp.slice(0, -1);
   }
   return tmp + "...";
-      }
+            }
