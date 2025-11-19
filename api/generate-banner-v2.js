@@ -228,46 +228,29 @@ export default async function handler(req, res) {
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO (ESTILIZADA COMO INDICADOR DE STATUS)
+    //     BARRA DE STATUS COMPLETA
     // =============================
     const progressY = cardY + cardH - 150;
     const barW = 800;
     const barX = cardX + (cardW - barW) / 2;
     const barThickness = 25;
-    const indicatorSize = 35;
 
-    // Base da barra (sutil)
-    ctx.fillStyle = COLOR_PROGRESS_BASE;
-    ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
-    ctx.fill();
-
-    // Progresso (com gradiente para efeito moderno)
+    // Barra completa colorida (sem indicador de carregamento)
     const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
     gradient.addColorStop(0, COLOR_HIGHLIGHT);
     gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
     
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    
-    // Usar porcentagem fixa para efeito decorativo
-    const filledWidth = barW * 0.7;
-    ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
+    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Indicador de status
-    const indicatorX = barX + filledWidth;
-    ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.beginPath();
-    ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Texto decorativo "ONLINE"
+    // Texto "ONLINE" (sem ícone)
     const statusY = progressY + barThickness + 45;
     ctx.font = "bold 40px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
     ctx.textAlign = "center";
-    ctx.fillText("⚡ ONLINE", barX + barW / 2, statusY);
+    ctx.fillText("ONLINE", barX + barW / 2, statusY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -297,4 +280,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-      }
+                                                   }
