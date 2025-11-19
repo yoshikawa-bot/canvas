@@ -22,8 +22,7 @@ let COLOR_HIGHLIGHT = "#FF6EB4";
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
 const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
-const COLOR_TEXT_CHANNEL = "rgba(255, 255, 255, 0.9)";
-const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.7)";
+const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
 
 // Função para extrair cor predominante da imagem
 function getDominantColor(imageData) {
@@ -82,7 +81,7 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da música",
+      title = "Título da musica",
       channel = "Canal",
       thumbnail = null,
       currentTime = "1:46",
@@ -222,72 +221,72 @@ export default async function handler(req, res) {
     //             TEXTOS
     // =============================
     const textX = coverX + coverSize + 60;
-    let textY = coverY + 120;
+    let textY = coverY + 150;
 
     // Título da música
     ctx.fillStyle = COLOR_TEXT_TITLE;
-    ctx.font = "bold 70px Inter";
+    ctx.font = "bold 80px Inter";
     ctx.textAlign = "left";
     ctx.fillText(truncateText(ctx, title, 650), textX, textY); 
 
-    textY += 90; 
+    textY += 120; 
     
-    // Canal/Artista
-    ctx.font = "bold 45px Inter";
+    // Artista/Canal
+    ctx.font = "bold 60px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO LATERAL
+    //     BARRA DE PROGRESSO (MESMO ESTILO DO PING ORIGINAL)
     // =============================
-    const progressX = textX;
-    const progressY = textY + 80;
-    const progressHeight = 350;
-    const progressWidth = 25;
-    const indicatorSize = 35;
+    const progressY = cardY + cardH - 150;
+    const barW = 800;
+    const barX = cardX + (cardW - barW) / 2;
+    const barThickness = 35;
+    const indicatorSize = 45;
 
     // Calcular progresso real
     const totalSeconds = timeToSeconds(totalTime);
     const currentSeconds = timeToSeconds(currentTime);
     const ratio = totalSeconds > 0 ? currentSeconds / totalSeconds : 0.4;
 
-    // Base da barra (vertical)
+    // Base da barra
     ctx.fillStyle = COLOR_PROGRESS_BASE;
     ctx.beginPath();
-    ctx.roundRect(progressX, progressY, progressWidth, progressHeight, progressWidth / 2);
+    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Progresso (vertical)
-    const gradient = ctx.createLinearGradient(progressX, progressY, progressX, progressY + progressHeight);
+    // Progresso
+    const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
     gradient.addColorStop(0, COLOR_HIGHLIGHT);
     gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
     
     ctx.fillStyle = gradient;
     ctx.beginPath();
-    const filledHeight = progressHeight * ratio;
-    ctx.roundRect(progressX, progressY + (progressHeight - filledHeight), progressWidth, filledHeight, progressWidth / 2);
+    const filledWidth = barW * ratio;
+    ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Indicador (bolinha lateral)
-    const indicatorY = progressY + (progressHeight - filledHeight);
+    // Indicador
+    const indicatorX = barX + filledWidth;
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.beginPath();
-    ctx.arc(progressX + progressWidth / 2, indicatorY, indicatorSize, 0, Math.PI * 2);
+    ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
 
     // =============================
-    //     TEMPOS (AO LADO DA BARRA)
+    //     INFORMAÇÕES DE TEMPO
     // =============================
-    const timeX = progressX + progressWidth + 30;
-    
-    // Tempo atual (em cima)
-    ctx.font = "bold 40px Inter";
-    ctx.fillStyle = COLOR_TEXT_TIME;
-    ctx.textAlign = "left";
-    ctx.fillText(currentTime, timeX, progressY + 40);
+    const timeY = progressY + barThickness + 50;
 
-    // Tempo total (embaixo)
-    ctx.fillText(totalTime, timeX, progressY + progressHeight - 20);
+    ctx.font = "bold 45px Inter";
+    ctx.fillStyle = COLOR_TEXT_TIME;
+
+    ctx.textAlign = "left";
+    ctx.fillText(currentTime, barX, timeY);
+
+    ctx.textAlign = "right";
+    ctx.fillText(totalTime, barX + barW, timeY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -314,4 +313,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-            }
+                    }
