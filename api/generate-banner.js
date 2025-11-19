@@ -248,6 +248,27 @@ export default async function handler(req, res) {
     const indicatorSize = 35;
     const ratio = 0.7; // 70% de carregamento
 
+    // =============================
+    //     INFORMAÇÕES DE TEMPO (NOS LADOS DA BARRA)
+    // =============================
+    const timeDistanceFromBar = 30; // Distância horizontal da barra
+    const timeY = progressY + barThickness / 2; // Mesma altura do centro da barra
+
+    ctx.font = "bold 45px Inter";
+    ctx.fillStyle = COLOR_TEXT_TIME;
+    ctx.textBaseline = "middle"; // Centralizar verticalmente
+
+    // Calcular tempo atual baseado em 70% do tempo total
+    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
+
+    // Tempo atual (ESQUERDA) - posicionado antes da barra
+    ctx.textAlign = "right";
+    ctx.fillText(calculatedCurrentTime, barX - timeDistanceFromBar, timeY);
+
+    // Tempo total (DIREITA) - posicionado depois da barra
+    ctx.textAlign = "left";
+    ctx.fillText(totalTime, barX + barW + timeDistanceFromBar, timeY);
+
     // Base da barra
     ctx.fillStyle = COLOR_PROGRESS_BASE;
     ctx.beginPath();
@@ -273,26 +294,6 @@ export default async function handler(req, res) {
     ctx.beginPath();
     ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
-
-    // =============================
-    //     INFORMAÇÕES DE TEMPO (NOS EXTREMOS DA BARRA)
-    // =============================
-    const timeY = progressY + barThickness + 50;
-    const timeDistanceFromBar = 25; // Distância normal da barra
-
-    ctx.font = "bold 45px Inter";
-    ctx.fillStyle = COLOR_TEXT_TIME;
-
-    // Calcular tempo atual baseado em 70% do tempo total
-    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
-
-    // Tempo atual (ESQUERDA) - posicionado no início da barra
-    ctx.textAlign = "left";
-    ctx.fillText(calculatedCurrentTime, barX, timeY);
-
-    // Tempo total (DIREITA) - posicionado no final da barra
-    ctx.textAlign = "right";
-    ctx.fillText(totalTime, barX + barW, timeY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -322,4 +323,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-}
+  }
