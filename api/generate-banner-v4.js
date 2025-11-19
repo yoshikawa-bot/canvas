@@ -12,26 +12,73 @@ export default async function handler(req, res) {
       user2 = "https://yoshikawa-bot.github.io/cache/images/236744bb.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    const W = 800;
-    const H = 400;
+    const W = 1400;
+    const H = 900;
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // Fundo gradiente suave
-    const gradient = ctx.createLinearGradient(0, 0, W, H);
-    gradient.addColorStop(0, '#ffe6f2');
-    gradient.addColorStop(1, '#ffccff');
-    ctx.fillStyle = gradient;
-    ctx.fillRect(0, 0, W, H);
+    // Fundo igual ao do welcome
+    try {
+      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/76f9e52a.jpg";
+      const response = await fetch(bgUrl);
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const bg = await loadImage(buffer);
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(30, 30, W - 60, H - 60, 120);
+      ctx.clip();
+      ctx.drawImage(bg, 0, 0, W, H);
+      ctx.restore();
+      
+    } catch (e) {
+      console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
+      
+      ctx.save();
+      ctx.beginPath();
+      ctx.roundRect(30, 30, W - 60, H - 60, 120);
+      ctx.clip();
+      
+      const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
+      gradient.addColorStop(0, "#ffe5ed");
+      gradient.addColorStop(0.5, "#ffb3c8");
+      gradient.addColorStop(1, "#db7093");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, W, H);
+      ctx.restore();
+    }
 
-    // Tamanho das fotos
-    const photoSize = 150;
-    const photoRadius = 75;
+    // Card igual ao do welcome
+    const cardW = 1200;
+    const cardH = 700;
+    const cardX = (W - cardW) / 2;
+    const cardY = (H - cardH) / 2;
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 25;
+    
+    ctx.fillStyle = "rgba(0, 0, 0, 0.5)";
+    ctx.beginPath();
+    ctx.roundRect(cardX, cardY, cardW, cardH, 80);
+    ctx.fill();
+    
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
+
+    // Tamanho das fotos (bem maiores)
+    const photoSize = 350;
+    const photoRadius = 175;
 
     // Posições das fotos
-    const photo1X = 150;
-    const photo2X = W - 150 - photoSize;
-    const photoY = (H - photoSize) / 2;
+    const photo1X = cardX + 150;
+    const photo2X = cardX + cardW - 150 - photoSize;
+    const photoY = cardY + (cardH - photoSize) / 2;
 
     // Carregar e desenhar primeira foto
     try {
@@ -55,8 +102,14 @@ export default async function handler(req, res) {
       ctx.arc(photo1X + photoRadius, photoY + photoRadius, photoRadius, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.fillStyle = '#ff9999';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fillRect(photo1X, photoY, photoSize, photoSize);
+      
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 120px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("👤", photo1X + photoRadius, photoY + photoRadius);
       ctx.restore();
     }
 
@@ -82,15 +135,21 @@ export default async function handler(req, res) {
       ctx.arc(photo2X + photoRadius, photoY + photoRadius, photoRadius, 0, Math.PI * 2);
       ctx.closePath();
       ctx.clip();
-      ctx.fillStyle = '#9999ff';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
       ctx.fillRect(photo2X, photoY, photoSize, photoSize);
+      
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 120px Arial";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("👤", photo2X + photoRadius, photoY + photoRadius);
       ctx.restore();
     }
 
-    // Coração vermelho no meio
+    // Coração vermelho grande centralizado
     const heartX = W / 2;
     const heartY = H / 2;
-    const heartSize = 40;
+    const heartSize = 180; // Quase do tamanho das fotos
 
     ctx.fillStyle = '#ff0000';
     ctx.save();
@@ -118,4 +177,4 @@ export default async function handler(req, res) {
     console.error("Erro ao gerar imagem do casal:", e);
     res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
   }
-        }
+}
