@@ -275,7 +275,7 @@ export default async function handler(req, res) {
     ctx.fill();
 
     // =============================
-    //     INFORMAÇÕES DE TEMPO (NOS LADOS DA BARRA)
+    //     INFORMAÇÕES DE TEMPO (NOS EXTREMOS DA BARRA)
     // =============================
     const timeY = progressY + barThickness + 50;
     const timeDistanceFromBar = 25; // Distância normal da barra
@@ -286,11 +286,11 @@ export default async function handler(req, res) {
     // Calcular tempo atual baseado em 70% do tempo total
     const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
 
-    // Tempo atual (esquerda) - alinhado à esquerda
+    // Tempo atual (ESQUERDA) - posicionado no início da barra
     ctx.textAlign = "left";
     ctx.fillText(calculatedCurrentTime, barX, timeY);
 
-    // Tempo total (direita) - alinhado à direita
+    // Tempo total (DIREITA) - posicionado no final da barra
     ctx.textAlign = "right";
     ctx.fillText(totalTime, barX + barW, timeY);
 
@@ -322,4 +322,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-      }
+}
