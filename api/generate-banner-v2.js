@@ -63,17 +63,6 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
-// Função para calcular tempo baseado em porcentagem
-function calculateTimeFromPercentage(totalTime, percentage) {
-  const totalSeconds = timeToSeconds(totalTime);
-  const currentSeconds = Math.floor(totalSeconds * percentage);
-  
-  const minutes = Math.floor(currentSeconds / 60);
-  const seconds = currentSeconds % 60;
-  
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-}
-
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -83,11 +72,11 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da musica",
-      channel = "Canal",
-      thumbnail = null,
-      currentTime = "1:46",
-      totalTime = "3:56"
+      title = "Yoshikawa Bot",
+      channel = "0ms",
+      thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg",
+      currentTime = "0:00",
+      totalTime = "0:00"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1400;
@@ -213,7 +202,7 @@ export default async function handler(req, res) {
       ctx.font = "bold 180px Inter";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2);
+      ctx.fillText("🤖", coverX + coverSize/2, coverY + coverSize/2);
     }
 
     // Atualizar cor highlight com a cor extraída
@@ -223,64 +212,62 @@ export default async function handler(req, res) {
     //             TEXTOS
     // =============================
     const textX = coverX + coverSize + 60;
-    let textY = coverY + 100;
+    let textY = coverY + 150;
 
+    // Título principal (Nome do Bot)
     ctx.fillStyle = COLOR_TEXT_TITLE;
     ctx.font = "bold 80px Inter";
     ctx.textAlign = "left";
     ctx.fillText(truncateText(ctx, title, 650), textX, textY); 
 
-    textY += 100; 
-    ctx.font = "bold 50px Inter";
+    textY += 120; 
+    
+    // Ping (em destaque)
+    ctx.font = "bold 60px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO
+    //     BARRA DE PROGRESSO (ESTILIZADA COMO INDICADOR DE STATUS)
     // =============================
     const progressY = cardY + cardH - 150;
     const barW = 800;
     const barX = cardX + (cardW - barW) / 2;
-    const barThickness = 35;
-    const indicatorSize = 45;
-    const ratio = 0.4;
+    const barThickness = 25;
+    const indicatorSize = 35;
 
-    // Base da barra
+    // Base da barra (sutil)
     ctx.fillStyle = COLOR_PROGRESS_BASE;
     ctx.beginPath();
     ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Progresso
-    ctx.fillStyle = COLOR_HIGHLIGHT;
+    // Progresso (com gradiente para efeito moderno)
+    const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
+    gradient.addColorStop(0, COLOR_HIGHLIGHT);
+    gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
-    const filledWidth = barW * ratio;
+    
+    // Usar porcentagem fixa para efeito decorativo
+    const filledWidth = barW * 0.7;
     ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Indicador
+    // Indicador de status
     const indicatorX = barX + filledWidth;
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.beginPath();
     ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // =============================
-    //     INFORMAÇÕES DE TEMPO
-    // =============================
-    const timeY = progressY + barThickness + 50; // Posição original
-
-    ctx.font = "bold 45px Inter";
+    // Texto decorativo "ONLINE"
+    const statusY = progressY + barThickness + 45;
+    ctx.font = "bold 40px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
-
-    // Calcular tempo atual baseado em 40% do tempo total
-    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, 0.4);
-
-    ctx.textAlign = "left";
-    ctx.fillText(calculatedCurrentTime, barX, timeY);
-
-    ctx.textAlign = "right";
-    ctx.fillText(totalTime, barX + barW, timeY);
+    ctx.textAlign = "center";
+    ctx.fillText("⚡ ONLINE", barX + barW / 2, statusY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -310,4 +297,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-            }
+                    }
