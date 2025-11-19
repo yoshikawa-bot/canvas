@@ -99,7 +99,7 @@ export default async function handler(req, res) {
     //   FUNDO MAIOR E ARREDONDADO
     // =============================
     try {
-      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/09b10e07.jpg";
+      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/76f9e52a.jpg";
       const response = await fetch(bgUrl);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
