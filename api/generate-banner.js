@@ -63,6 +63,17 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
+// Função para calcular tempo baseado em porcentagem
+function calculateTimeFromPercentage(totalTime, percentage) {
+  const totalSeconds = timeToSeconds(totalTime);
+  const currentSeconds = Math.floor(totalSeconds * percentage);
+  
+  const minutes = Math.floor(currentSeconds / 60);
+  const seconds = currentSeconds % 60;
+  
+  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -257,13 +268,16 @@ export default async function handler(req, res) {
     // =============================
     //     INFORMAÇÕES DE TEMPO
     // =============================
-    const timeY = progressY + barThickness + 50;
+    const timeY = progressY + barThickness + 80; // Aumentado de 50 para 80
 
     ctx.font = "bold 45px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
 
+    // Calcular tempo atual baseado em 40% do tempo total
+    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, 0.4);
+
     ctx.textAlign = "left";
-    ctx.fillText(currentTime, barX, timeY);
+    ctx.fillText(calculatedCurrentTime, barX, timeY);
 
     ctx.textAlign = "right";
     ctx.fillText(totalTime, barX + barW, timeY);
@@ -296,4 +310,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-      }
+  }
