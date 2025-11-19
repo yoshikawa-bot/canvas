@@ -2,7 +2,6 @@ import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-// Fontes
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -15,29 +14,23 @@ try {
   console.log("Não foi possível carregar a fonte Inter. Usando padrão.");
 }
 
-// =============================
-//      CONFIGURAÇÃO DE CORES
-// =============================
-let COLOR_HIGHLIGHT = "#FF6EB4"; // Será sobrescrito pela cor extraída
+let COLOR_HIGHLIGHT = "#FF6EB4";
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
 const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
 const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
 
-// Função para extrair cor predominante da imagem
 function getDominantColor(imageData) {
   const data = imageData.data;
   const colorCount = {};
   let maxCount = 0;
-  let dominantColor = '#FF6EB4'; // Fallback
+  let dominantColor = '#FF6EB4';
 
-  // Amostrar pixels para performance
-  for (let i = 0; i < data.length; i += 16) { // A cada 4 pixels
+  for (let i = 0; i < data.length; i += 16) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     
-    // Ignorar pixels muito escuros ou muito claros
     const brightness = (r + g + b) / 3;
     if (brightness < 30 || brightness > 220) continue;
     
@@ -53,7 +46,6 @@ function getDominantColor(imageData) {
   return dominantColor;
 }
 
-// Função para ajustar brilho da cor
 function adjustColorBrightness(color, percent) {
   const num = parseInt(color.replace("#", ""), 16);
   const amt = Math.round(2.55 * percent);
@@ -63,7 +55,6 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
-// Função para calcular tempo baseado em porcentagem
 function calculateTimeFromPercentage(totalTime, percentage) {
   const totalSeconds = timeToSeconds(totalTime);
   const currentSeconds = Math.floor(totalSeconds * percentage);
@@ -75,7 +66,6 @@ function calculateTimeFromPercentage(totalTime, percentage) {
 }
 
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -95,9 +85,6 @@ export default async function handler(req, res) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // =============================
-    //   FUNDO MAIOR E ARREDONDADO
-    // =============================
     try {
       const bgUrl = "https://yoshikawa-bot.github.io/cache/images/76f9e52a.jpg";
       const response = await fetch(bgUrl);
@@ -132,9 +119,6 @@ export default async function handler(req, res) {
       ctx.restore();
     }
 
-    // =============================
-    //         CARD CENTRAL
-    // =============================
     const cardW = 1200;
     const cardH = 700;
     const cardX = (W - cardW) / 2;
@@ -153,9 +137,6 @@ export default async function handler(req, res) {
     ctx.shadowColor = "transparent";
     ctx.shadowBlur = 0;
 
-    // =============================
-    //     THUMBNAIL E EXTRAÇÃO DE COR
-    // =============================
     const coverSize = 400;
     const coverX = cardX + 80;
     const coverY = cardY + 80;
@@ -170,7 +151,6 @@ export default async function handler(req, res) {
           const buf = Buffer.from(await response.arrayBuffer());
           const img = await loadImage(buf);
 
-          // Desenhar thumbnail
           ctx.save();
           ctx.beginPath();
           ctx.roundRect(coverX, coverY, coverSize, coverSize, 60);
@@ -178,14 +158,12 @@ export default async function handler(req, res) {
           ctx.drawImage(img, coverX, coverY, coverSize, coverSize);
           ctx.restore();
 
-          // Extrair cor predominante
           const tempCanvas = createCanvas(coverSize, coverSize);
           const tempCtx = tempCanvas.getContext('2d');
           tempCtx.drawImage(img, 0, 0, coverSize, coverSize);
           const imageData = tempCtx.getImageData(0, 0, coverSize, coverSize);
           dominantColor = getDominantColor(imageData);
           
-          // Ajustar cor se necessário para melhor contraste
           const rgb = parseInt(dominantColor.replace("#", ""), 16);
           const r = (rgb >> 16) & 0xff;
           const g = (rgb >> 8) & 0xff;
@@ -216,16 +194,11 @@ export default async function handler(req, res) {
       ctx.fillText("🎵", coverX + coverSize/2, coverY + coverSize/2);
     }
 
-    // Atualizar cor highlight com a cor extraída
     COLOR_HIGHLIGHT = dominantColor;
 
-    // =============================
-    //             TEXTOS
-    // =============================
     const textX = coverX + coverSize + 60;
     let textY = coverY + 150;
 
-    // Título da música
     ctx.fillStyle = COLOR_TEXT_TITLE;
     ctx.font = "bold 80px Inter";
     ctx.textAlign = "left";
@@ -233,49 +206,37 @@ export default async function handler(req, res) {
 
     textY += 120; 
     
-    // Nome do artista/canal (em destaque)
     ctx.font = "bold 60px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.fillText(channel, textX, textY);
+    ctx.fillText(truncateText(ctx, channel, 650), textX, textY);
 
-    // =============================
-    //     BARRA DE PROGRESSO (ESTILO MODERNO)
-    // =============================
     const progressY = cardY + cardH - 150;
     const barW = 800;
     const barX = cardX + (cardW - barW) / 2;
     const barThickness = 25;
     const indicatorSize = 35;
-    const ratio = 0.7; // 70% de carregamento
+    const ratio = 0.7;
 
-    // =============================
-    //     INFORMAÇÕES DE TEMPO (NOS LADOS DA BARRA)
-    // =============================
-    const timeDistanceFromBar = 30; // Distância horizontal da barra
-    const timeY = progressY + barThickness / 2; // Mesma altura do centro da barra
+    const timeDistanceFromBar = 30;
+    const timeY = progressY + barThickness / 2;
 
     ctx.font = "bold 45px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
-    ctx.textBaseline = "middle"; // Centralizar verticalmente
+    ctx.textBaseline = "middle";
 
-    // Calcular tempo atual baseado em 70% do tempo total
     const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
 
-    // Tempo atual (ESQUERDA) - posicionado antes da barra
     ctx.textAlign = "right";
     ctx.fillText(calculatedCurrentTime, barX - timeDistanceFromBar, timeY);
 
-    // Tempo total (DIREITA) - posicionado depois da barra
     ctx.textAlign = "left";
     ctx.fillText(totalTime, barX + barW + timeDistanceFromBar, timeY);
 
-    // Base da barra
     ctx.fillStyle = COLOR_PROGRESS_BASE;
     ctx.beginPath();
     ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Progresso (com gradiente para efeito moderno)
     const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
     gradient.addColorStop(0, COLOR_HIGHLIGHT);
     gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
@@ -283,19 +244,16 @@ export default async function handler(req, res) {
     ctx.fillStyle = gradient;
     ctx.beginPath();
     
-    // Usar 70% fixo para o progresso
     const filledWidth = barW * ratio;
     ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
 
-    // Indicador de progresso
     const indicatorX = barX + filledWidth;
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.beginPath();
     ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
 
-    // SAÍDA
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
@@ -306,9 +264,6 @@ export default async function handler(req, res) {
   }
 }
 
-// =============================
-//        FUNÇÕES AUXILIARES
-// =============================
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -323,4 +278,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-  }
+}
