@@ -20,7 +20,7 @@ try {
 //      CONFIGURAÇÃO DE CORES
 // =============================
 const COLOR_HIGHLIGHT = "#FF6EB4"; // Rosa forte para progresso, coração e canal
-const COLOR_BASE_BG = "rgba(0, 0, 0, 0.8)"; // Cor do card: PRETO com transparência
+const COLOR_BASE_BG = "rgba(0, 0, 0, 0.6)"; // Card MAIS TRANSPARENTE
 const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)"; // Cor da base da barra de progresso
 const COLOR_TEXT_TITLE = "#FFFFFF"; // Branco
 const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)"; // Branco Semi-transparente
@@ -103,7 +103,7 @@ export default async function handler(req, res) {
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 25;
     
-    // Card PRETO com bordas MUITO arredondadas
+    // Card PRETO MAIS TRANSPARENTE com bordas MUITO arredondadas
     ctx.fillStyle = COLOR_BASE_BG; 
     ctx.beginPath();
     ctx.roundRect(cardX, cardY, cardW, cardH, 80); // Bordas MUITO mais arredondadas
@@ -177,19 +177,6 @@ export default async function handler(req, res) {
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     ÍCONE DE CORAÇÃO - MOVIDO PRA BAIXO
-    // =============================
-    const heartSize = 80; 
-    const heartX = cardX + cardW - 100;
-    const heartY = coverY + coverSize - 50; // MOVIDO PRA BAIXO (alinhado com parte inferior do thumbnail)
-
-    ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.font = `bold ${heartSize}px Inter`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.fillText("❤", heartX, heartY);
-
-    // =============================
     //     BARRA DE PROGRESSO - MENOR E MUITO MAIS GROSSA
     // =============================
     const progressY = cardY + cardH - 150;
@@ -213,18 +200,18 @@ export default async function handler(req, res) {
     ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
 
-    // 3. Cursor/Indicador
+    // 3. Cursor/Indicador - AGORA TODO ROSA
     const indicatorX = barX + filledWidth;
     
-    // Círculo branco externo
-    ctx.fillStyle = "#FFFFFF";
+    // Círculo ROSA (ao invés de branco)
+    ctx.fillStyle = COLOR_HIGHLIGHT; // ROSA
     ctx.beginPath();
     ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
     
-    // Borda fina rosa
-    ctx.strokeStyle = COLOR_HIGHLIGHT;
-    ctx.lineWidth = 5;
+    // Borda branca fina para contraste
+    ctx.strokeStyle = "#FFFFFF";
+    ctx.lineWidth = 4;
     ctx.stroke();
 
     // =============================
@@ -270,4 +257,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-}
+                 }
