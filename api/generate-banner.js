@@ -246,6 +246,7 @@ export default async function handler(req, res) {
     const barX = cardX + (cardW - barW) / 2;
     const barThickness = 25;
     const indicatorSize = 35;
+    const ratio = 0.4;
 
     // Base da barra
     ctx.fillStyle = COLOR_PROGRESS_BASE;
@@ -261,12 +262,8 @@ export default async function handler(req, res) {
     ctx.fillStyle = gradient;
     ctx.beginPath();
     
-    // Calcular progresso baseado no tempo atual
-    const totalSeconds = timeToSeconds(totalTime);
-    const currentSeconds = timeToSeconds(currentTime);
-    const ratio = totalSeconds > 0 ? currentSeconds / totalSeconds : 0.4;
+    // Usar 40% fixo para o progresso
     const filledWidth = barW * ratio;
-    
     ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
 
@@ -278,20 +275,23 @@ export default async function handler(req, res) {
     ctx.fill();
 
     // =============================
-    //     INFORMAÇÕES DE TEMPO
+    //     INFORMAÇÕES DE TEMPO (NAS LATERAIS)
     // =============================
-    const timeY = progressY + barThickness + 45;
-
-    ctx.font = "bold 40px Inter";
+    const timeFontSize = 45;
+    ctx.font = `bold ${timeFontSize}px Inter`;
     ctx.fillStyle = COLOR_TEXT_TIME;
 
-    // Tempo atual (esquerda)
-    ctx.textAlign = "left";
-    ctx.fillText(currentTime, barX, timeY);
+    // Calcular tempo atual baseado em 40% do tempo total
+    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
 
-    // Tempo total (direita)
+    // Tempo atual (esquerda) - alinhado verticalmente com a barra
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+    ctx.fillText(calculatedCurrentTime, barX - 100, progressY + barThickness / 2);
+
+    // Tempo total (direita) - alinhado verticalmente com a barra
     ctx.textAlign = "right";
-    ctx.fillText(totalTime, barX + barW, timeY);
+    ctx.fillText(totalTime, barX + barW + 100, progressY + barThickness / 2);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -321,4 +321,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-}
+      }
