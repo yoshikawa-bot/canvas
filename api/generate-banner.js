@@ -18,26 +18,25 @@ try {
 // =============================
 //      CONFIGURAÇÃO DE CORES
 // =============================
-let COLOR_HIGHLIGHT = "#FF6EB4"; // Será sobrescrito pela cor extraída
+let COLOR_HIGHLIGHT = "#FF6EB4";
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
 const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
-const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
+const COLOR_TEXT_CHANNEL = "rgba(255, 255, 255, 0.9)";
+const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.7)";
 
 // Função para extrair cor predominante da imagem
 function getDominantColor(imageData) {
   const data = imageData.data;
   const colorCount = {};
   let maxCount = 0;
-  let dominantColor = '#FF6EB4'; // Fallback
+  let dominantColor = '#FF6EB4';
 
-  // Amostrar pixels para performance
-  for (let i = 0; i < data.length; i += 16) { // A cada 4 pixels
+  for (let i = 0; i < data.length; i += 16) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     
-    // Ignorar pixels muito escuros ou muito claros
     const brightness = (r + g + b) / 3;
     if (brightness < 30 || brightness > 220) continue;
     
@@ -83,7 +82,7 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da musica",
+      title = "Título da música",
       channel = "Canal",
       thumbnail = null,
       currentTime = "1:46",
@@ -223,64 +222,72 @@ export default async function handler(req, res) {
     //             TEXTOS
     // =============================
     const textX = coverX + coverSize + 60;
-    let textY = coverY + 100;
+    let textY = coverY + 120;
 
+    // Título da música
     ctx.fillStyle = COLOR_TEXT_TITLE;
-    ctx.font = "bold 80px Inter";
+    ctx.font = "bold 70px Inter";
     ctx.textAlign = "left";
     ctx.fillText(truncateText(ctx, title, 650), textX, textY); 
 
-    textY += 100; 
-    ctx.font = "bold 50px Inter";
+    textY += 90; 
+    
+    // Canal/Artista
+    ctx.font = "bold 45px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     BARRA DE PROGRESSO
+    //     BARRA DE PROGRESSO LATERAL
     // =============================
-    const progressY = cardY + cardH - 150;
-    const barW = 800;
-    const barX = cardX + (cardW - barW) / 2;
-    const barThickness = 35;
-    const indicatorSize = 45;
-    const ratio = 0.4;
+    const progressX = textX;
+    const progressY = textY + 80;
+    const progressHeight = 350;
+    const progressWidth = 25;
+    const indicatorSize = 35;
 
-    // Base da barra
+    // Calcular progresso real
+    const totalSeconds = timeToSeconds(totalTime);
+    const currentSeconds = timeToSeconds(currentTime);
+    const ratio = totalSeconds > 0 ? currentSeconds / totalSeconds : 0.4;
+
+    // Base da barra (vertical)
     ctx.fillStyle = COLOR_PROGRESS_BASE;
     ctx.beginPath();
-    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
+    ctx.roundRect(progressX, progressY, progressWidth, progressHeight, progressWidth / 2);
     ctx.fill();
 
-    // Progresso
-    ctx.fillStyle = COLOR_HIGHLIGHT;
+    // Progresso (vertical)
+    const gradient = ctx.createLinearGradient(progressX, progressY, progressX, progressY + progressHeight);
+    gradient.addColorStop(0, COLOR_HIGHLIGHT);
+    gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
-    const filledWidth = barW * ratio;
-    ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
+    const filledHeight = progressHeight * ratio;
+    ctx.roundRect(progressX, progressY + (progressHeight - filledHeight), progressWidth, filledHeight, progressWidth / 2);
     ctx.fill();
 
-    // Indicador
-    const indicatorX = barX + filledWidth;
+    // Indicador (bolinha lateral)
+    const indicatorY = progressY + (progressHeight - filledHeight);
     ctx.fillStyle = COLOR_HIGHLIGHT;
     ctx.beginPath();
-    ctx.arc(indicatorX, progressY + barThickness / 2, indicatorSize, 0, Math.PI * 2);
+    ctx.arc(progressX + progressWidth / 2, indicatorY, indicatorSize, 0, Math.PI * 2);
     ctx.fill();
 
     // =============================
-    //     INFORMAÇÕES DE TEMPO
+    //     TEMPOS (AO LADO DA BARRA)
     // =============================
-    const timeY = progressY + barThickness + 50; // Posição original
-
-    ctx.font = "bold 45px Inter";
+    const timeX = progressX + progressWidth + 30;
+    
+    // Tempo atual (em cima)
+    ctx.font = "bold 40px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
-
-    // Calcular tempo atual baseado em 40% do tempo total
-    const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, 0.4);
-
     ctx.textAlign = "left";
-    ctx.fillText(calculatedCurrentTime, barX, timeY);
+    ctx.fillText(currentTime, timeX, progressY + 40);
 
-    ctx.textAlign = "right";
-    ctx.fillText(totalTime, barX + barW, timeY);
+    // Tempo total (embaixo)
+    ctx.fillText(totalTime, timeX, progressY + progressHeight - 20);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -293,9 +300,6 @@ export default async function handler(req, res) {
   }
 }
 
-// =============================
-//        FUNÇÕES AUXILIARES
-// =============================
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -310,4 +314,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-      }
+            }
