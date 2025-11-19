@@ -268,7 +268,7 @@ export default async function handler(req, res) {
     // =============================
     //     INFORMAÇÕES DE TEMPO
     // =============================
-    const timeY = progressY + barThickness + 80; // Aumentado de 50 para 80
+    const timeY = progressY + barThickness + 50; // Posição original
 
     ctx.font = "bold 45px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
@@ -310,4 +310,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-  }
+      }
