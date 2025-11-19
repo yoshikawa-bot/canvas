@@ -146,12 +146,19 @@ export default async function handler(req, res) {
       ctx.restore();
     }
 
-    // Coração vermelho grande centralizado
-    const heartX = W / 2;
-    const heartY = H / 2;
-    const heartSize = 180; // Quase do tamanho das fotos
-
-    ctx.fillStyle = '#ff0000';
+    // CORAÇÃO ATUALIZADO - posição, tamanho e cor
+    // Calcular posição exata no meio entre as duas fotos
+    const photo1CenterX = photo1X + photoRadius;
+    const photo2CenterX = photo2X + photoRadius;
+    const heartX = (photo1CenterX + photo2CenterX) / 2;
+    const heartY = photoY + photoRadius; // Mesma altura vertical das fotos
+    
+    // Tamanho menor para encaixar entre as fotos
+    const heartSize = 100; // Reduzido de 180 para 100
+    
+    // Cor pastel (rosa pastel)
+    ctx.fillStyle = '#ffb6c1'; // Rosa pastel
+    
     ctx.save();
     ctx.translate(heartX, heartY);
     ctx.scale(heartSize / 100, heartSize / 100);
