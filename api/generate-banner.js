@@ -246,7 +246,7 @@ export default async function handler(req, res) {
     const barX = cardX + (cardW - barW) / 2;
     const barThickness = 25;
     const indicatorSize = 35;
-    const ratio = 0.4;
+    const ratio = 0.7; // 70% de carregamento
 
     // Base da barra
     ctx.fillStyle = COLOR_PROGRESS_BASE;
@@ -262,7 +262,7 @@ export default async function handler(req, res) {
     ctx.fillStyle = gradient;
     ctx.beginPath();
     
-    // Usar 40% fixo para o progresso
+    // Usar 70% fixo para o progresso
     const filledWidth = barW * ratio;
     ctx.roundRect(barX, progressY, filledWidth, barThickness, barThickness / 2);
     ctx.fill();
@@ -275,23 +275,23 @@ export default async function handler(req, res) {
     ctx.fill();
 
     // =============================
-    //     INFORMAÇÕES DE TEMPO (NAS LATERAIS)
+    //     INFORMAÇÕES DE TEMPO
     // =============================
-    const timeFontSize = 45;
-    ctx.font = `bold ${timeFontSize}px Inter`;
+    const timeY = progressY + barThickness + 50;
+
+    ctx.font = "bold 45px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
 
-    // Calcular tempo atual baseado em 40% do tempo total
+    // Calcular tempo atual baseado em 70% do tempo total
     const calculatedCurrentTime = calculateTimeFromPercentage(totalTime, ratio);
 
-    // Tempo atual (esquerda) - alinhado verticalmente com a barra
+    // Tempo atual (esquerda)
     ctx.textAlign = "left";
-    ctx.textBaseline = "middle";
-    ctx.fillText(calculatedCurrentTime, barX - 100, progressY + barThickness / 2);
+    ctx.fillText(calculatedCurrentTime, barX, timeY);
 
-    // Tempo total (direita) - alinhado verticalmente com a barra
+    // Tempo total (direita)
     ctx.textAlign = "right";
-    ctx.fillText(totalTime, barX + barW + 100, progressY + barThickness / 2);
+    ctx.fillText(totalTime, barX + barW, timeY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -321,4 +321,4 @@ function timeToSeconds(t) {
   if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
-      }
+    }
