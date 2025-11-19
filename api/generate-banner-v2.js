@@ -18,7 +18,7 @@ try {
 // =============================
 //      CONFIGURAÇÃO DE CORES
 // =============================
-let COLOR_HIGHLIGHT = "#FF6EB4";
+let COLOR_HIGHLIGHT = "#FF6EB4"; // Será sobrescrito pela cor extraída
 const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
 const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
 const COLOR_TEXT_TITLE = "#FFFFFF";
@@ -29,13 +29,15 @@ function getDominantColor(imageData) {
   const data = imageData.data;
   const colorCount = {};
   let maxCount = 0;
-  let dominantColor = '#FF6EB4';
+  let dominantColor = '#FF6EB4'; // Fallback
 
-  for (let i = 0; i < data.length; i += 16) {
+  // Amostrar pixels para performance
+  for (let i = 0; i < data.length; i += 16) { // A cada 4 pixels
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     
+    // Ignorar pixels muito escuros ou muito claros
     const brightness = (r + g + b) / 3;
     if (brightness < 30 || brightness > 220) continue;
     
@@ -61,53 +63,6 @@ function adjustColorBrightness(color, percent) {
   return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
-// Função para gerar linha de batimento cardíaco (ilustrativa)
-function generateHeartbeatLine(ctx, x, y, width, height, color) {
-  const segments = 12;
-  const segmentWidth = width / segments;
-  const baseHeight = height * 0.5;
-  
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 8;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
-  
-  ctx.beginPath();
-  ctx.moveTo(x, y + baseHeight);
-  
-  // Padrão fixo de batimento cardíaco (apenas ilustrativo)
-  for (let i = 0; i < segments; i++) {
-    const segmentX = x + (i * segmentWidth);
-    const nextX = segmentX + segmentWidth;
-    
-    let segmentHeight;
-    if (i === 2 || i === 3) {
-      // Pico do batimento
-      segmentHeight = baseHeight - (height * 0.6);
-    } else if (i === 6 || i === 7) {
-      // Segundo pico menor
-      segmentHeight = baseHeight - (height * 0.4);
-    } else {
-      // Linha base
-      segmentHeight = baseHeight;
-    }
-    
-    ctx.lineTo(nextX, y + segmentHeight);
-  }
-  
-  ctx.stroke();
-  
-  // Adicionar pontos nos picos
-  ctx.fillStyle = color;
-  [3, 7].forEach(i => {
-    const pointX = x + (i * segmentWidth) + (segmentWidth / 2);
-    const pointY = y + baseHeight - (height * (i === 3 ? 0.6 : 0.4));
-    ctx.beginPath();
-    ctx.arc(pointX, pointY, 6, 0, Math.PI * 2);
-    ctx.fill();
-  });
-}
-
 export default async function handler(req, res) {
   // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -118,8 +73,10 @@ export default async function handler(req, res) {
   try {
     const { 
       title = "Yoshikawa Bot",
-      ping = "0ms",
-      thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg"
+      channel = "0ms",
+      thumbnail = "https://yoshikawa-bot.github.io/cache/images/19471ffb.jpg",
+      currentTime = "0:00",
+      totalTime = "0:00"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1400;
@@ -268,27 +225,32 @@ export default async function handler(req, res) {
     // Ping (em destaque)
     ctx.font = "bold 60px Inter";
     ctx.fillStyle = COLOR_HIGHLIGHT;
-    ctx.fillText(`Ping: ${ping}`, textX, textY);
+    ctx.fillText(channel, textX, textY);
 
     // =============================
-    //     LINHA DE BATIMENTO CARDÍACO (ILUSTRATIVA)
+    //     BARRA DE STATUS COMPLETA
     // =============================
-    const heartbeatY = cardY + cardH - 150;
+    const progressY = cardY + cardH - 150;
     const barW = 800;
     const barX = cardX + (cardW - barW) / 2;
-    const heartbeatHeight = 80;
+    const barThickness = 25;
 
-    // Gerar linha cardíaca ilustrativa
-    generateHeartbeatLine(ctx, barX, heartbeatY, barW, heartbeatHeight, COLOR_HIGHLIGHT);
+    // Barra completa colorida (sem indicador de carregamento)
+    const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
+    gradient.addColorStop(0, COLOR_HIGHLIGHT);
+    gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
+    
+    ctx.fillStyle = gradient;
+    ctx.beginPath();
+    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
+    ctx.fill();
 
-    // =============================
-    //     USUÁRIO @kawalyansky
-    // =============================
-    const userY = heartbeatY + heartbeatHeight + 50;
+    // Texto "ONLINE" (sem ícone)
+    const statusY = progressY + barThickness + 45;
     ctx.font = "bold 40px Inter";
     ctx.fillStyle = COLOR_TEXT_TIME;
     ctx.textAlign = "center";
-    ctx.fillText("kawalyansky", barX + barW / 2, userY);
+    ctx.fillText("ONLINE", barX + barW / 2, statusY);
 
     // SAÍDA
     const buffer = canvas.toBuffer('image/png');
@@ -301,6 +263,9 @@ export default async function handler(req, res) {
   }
 }
 
+// =============================
+//        FUNÇÕES AUXILIARES
+// =============================
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -308,4 +273,11 @@ function truncateText(ctx, text, maxWidth) {
     tmp = tmp.slice(0, -1);
   }
   return tmp + "...";
-                                                                       }
+}
+
+function timeToSeconds(t) {
+  const p = t.split(':').map(Number);
+  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+  if (p.length === 2) return p[0] * 60 + p[1];
+  return 0;
+  }
