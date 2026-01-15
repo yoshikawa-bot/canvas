@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     const leftMargin = 100;
     const maxTextWidth = W - leftMargin - 100;
 
-    let textY = coverY + coverSize + 39;
+    let textY = coverY + coverSize + 60;
 
     // Título (menor)
     ctx.fillStyle = '#FFFFFF';
@@ -141,8 +141,8 @@ export default async function handler(req, res) {
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 50; // espaçamento pequeno
-      ctx.font = '400 22px Inter';
+      textY += 40; // espaçamento pequeno
+      ctx.font = '400 30px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
     }
@@ -197,7 +197,7 @@ export default async function handler(req, res) {
     ctx.font = 'bold 60px Inter';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.fillText('Spotify', W - 40, 60);
+    ctx.fillText('Spotify', W - 40, 40);
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
