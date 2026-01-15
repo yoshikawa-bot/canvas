@@ -147,12 +147,12 @@ export default async function handler(req, res) {
     // Define o texto do tempo atual com base nos 60%
     const displayCurrentTime = formatTime(calculatedSec);
 
-    const progressBottom = H - 60;
+    const progressBottom = H - 80;
     const barX = 100;
     const barWidth = W - 230;
     
     // Aumentado a altura da barra (antes era 10)
-    const barHeight = 22; 
+    const barHeight = 15; 
     const barY = progressBottom - barHeight / 2;
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
@@ -175,7 +175,7 @@ export default async function handler(req, res) {
     }
 
     const timeY = progressBottom + 35; // Ajuste leve no Y do texto
-    ctx.font = '400 26px Inter';
+    ctx.font = '400 30px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
