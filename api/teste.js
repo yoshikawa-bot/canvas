@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 50; // espaçamento pequeno
+      textY += 40; // espaçamento pequeno
       ctx.font = '400 30px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
@@ -182,7 +182,7 @@ export default async function handler(req, res) {
 
     // Tempos (bem menores)
     const timeY = progressBottom + 30;
-    ctx.font = '400 30px Inter';
+    ctx.font = '400 26px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
 
