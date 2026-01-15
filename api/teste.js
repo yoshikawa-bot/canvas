@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     const leftMargin = 100;
     const maxTextWidth = W - leftMargin - 100;
 
-    let textY = coverY + coverSize + 50;
+    let textY = coverY + coverSize + 39;
 
     // Título (menor)
     ctx.fillStyle = '#FFFFFF';
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
-    textY += 50; // espaçamento pequeno
+    textY += 60; // espaçamento pequeno
 
     // Artista(s) (menor)
     ctx.font = '500 48px Inter';
