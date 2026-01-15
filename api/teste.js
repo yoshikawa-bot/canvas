@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const { 
       title = "Título da música",
       channel = "Artista",
-      albumType = "",
+      albumType = "single",
       thumbnail = null,
       currentTime = "0:00",
       totalTime = "3:56"
