@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     const leftMargin = 100;
     const maxTextWidth = W - leftMargin - 100;
 
-    let textY = coverY + coverSize + 39;
+    let textY = coverY + coverSize +  80;
 
     // Título (menor)
     ctx.fillStyle = '#FFFFFF';
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 70; // espaçamento pequeno
+      textY +=  50; // espaçamento pequeno
       ctx.font = '400 42px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
