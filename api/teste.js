@@ -15,7 +15,7 @@ try {
 }
 
 const GREEN = "#4ADE80";
-const DARK_OVERLAY = "rgba(0, 0, 0, 0.70)";
+const DARK_OVERLAY = "rgba(0, 0, 0, 0.75)";
 
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const { 
       title = "Título da música",
       channel = "Artista",
-      albumType = "", // novo parâmetro opcional (ex: "Single", "Álbum", etc.)
+      albumType = "",
       thumbnail = null,
       currentTime = "0:00",
       totalTime = "3:56"
@@ -71,15 +71,15 @@ export default async function handler(req, res) {
       }
     }
 
-    // Fundo: imagem borrada forte + overlay escuro
+    // Fundo: imagem borrada + overlay escuro
     if (thumbnailLoaded) {
-      const scale = Math.max(W / img.width, H / img.height) * 1.3; // zoom leve para melhor blur
+      const scale = Math.max(W / img.width, H / img.height) * 1.4;
       const dw = img.width * scale;
       const dh = img.height * scale;
       const dx = (W - dw) / 2;
       const dy = (H - dh) / 2;
 
-      ctx.filter = 'blur(60px)';
+      ctx.filter = 'blur(70px)';
       ctx.drawImage(img, dx, dy, dw, dh);
       ctx.filter = 'none';
 
@@ -90,17 +90,13 @@ export default async function handler(req, res) {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Capa central sharp (maior, com cantos arredondados sutis)
-    const coverSize = 740;
+    // Capa central sharp – SEM cantos arredondados + sombra forte
+    const coverSize = 780;
     const coverX = (W - coverSize) / 2;
-    const coverY = 140;
+    const coverY = 120;
 
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(coverX, coverY, coverSize, coverSize, 24);
-    ctx.clip();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 50;
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    ctx.shadowBlur = 60;
     ctx.shadowOffsetY = 30;
 
     if (thumbnailLoaded) {
@@ -114,76 +110,78 @@ export default async function handler(req, res) {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(coverX, coverY, coverSize, coverSize);
       ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 320px Inter';
+      ctx.font = 'bold 340px Inter';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText('♪', W / 2, coverY + coverSize / 2);
     }
-    ctx.restore();
 
     ctx.shadowBlur = 0;
+    ctx.shadowColor = 'transparent';
 
-    // Textos centralizados abaixo da capa
-    let textY = coverY + coverSize + 80;
+    // Textos – centralizados perfeitamente
+    let textY = coverY + coverSize + 100;
 
-    // Título
+    // Título (grande e bold)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 92px Inter';
+    ctx.font = 'bold 100px Inter';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(truncateText(ctx, title, W - 160), W / 2, textY);
+    const truncatedTitle = truncateText(ctx, title, W - 200);
+    ctx.fillText(truncatedTitle, W / 2, textY);
 
-    textY += 120;
+    textY += 140;
 
     // Artista(s)
-    ctx.font = '500 56px Inter';
+    ctx.font = '500 62px Inter';
     ctx.fillStyle = '#b3b3b3';
-    ctx.fillText(truncateText(ctx, channel, W - 160), W / 2, textY);
+    const truncatedChannel = truncateText(ctx, channel, W - 200);
+    ctx.fillText(truncatedChannel, W / 2, textY);
 
-    // Album type (Single, Álbum, etc.) – opcional
+    // Album type (opcional)
     if (albumType) {
-      textY += 80;
-      ctx.font = '400 48px Inter';
+      textY += 90;
+      ctx.font = '400 52px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(albumType, W / 2, textY);
     }
 
-    // Cálculo do progresso
+    // Progresso
     const currentSec = timeToSeconds(currentTime);
     const totalSec = timeToSeconds(totalTime);
     const ratio = totalSec > 0 ? Math.max(0, Math.min(1, currentSec / totalSec)) : 0;
 
-    // Barra de progresso (bem na parte inferior)
-    const progressBottom = H - 120;
-    const barX = 100;
-    const barWidth = W - 200;
-    const barHeight = 6;
+    // Barra de progresso (fina, na parte inferior)
+    const progressBottom = H - 140;
+    const barX = 120;
+    const barWidth = W - 240;
+    const barHeight = 5;
     const barY = progressBottom - barHeight / 2;
 
-    // Barra base (cinza escura)
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+    // Base da barra
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.beginPath();
     ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    // Barra preenchida (verde)
+    // Preenchida (verde)
     const filledWidth = barWidth * ratio;
     ctx.fillStyle = GREEN;
     ctx.beginPath();
     ctx.roundRect(barX, barY, filledWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    // Indicador pequeno branco no final da barra preenchida
+    // Indicador branco
     if (ratio > 0 && ratio < 1) {
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
-      ctx.arc(barX + filledWidth, barY + barHeight / 2, 10, 0, Math.PI * 2);
+      ctx.arc(barX + filledWidth, barY + barHeight / 2, 9, 0, Math.PI * 2);
       ctx.fill();
     }
 
     // Tempos (abaixo da barra)
-    const timeY = progressBottom + 50;
-    ctx.font = '400 42px Inter';
+    const timeY = progressBottom + 60;
+    ctx.font = '400 46px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
 
@@ -193,9 +191,9 @@ export default async function handler(req, res) {
     ctx.textAlign = 'right';
     ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
 
-    // Logo Spotify (topo direito, pequeno)
+    // Logo Spotify (topo direito)
     ctx.fillStyle = GREEN;
-    ctx.font = 'bold 56px Inter';
+    ctx.font = 'bold 60px Inter';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
     ctx.fillText('Spotify', W - 80, 80);
