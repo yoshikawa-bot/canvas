@@ -139,14 +139,6 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#b3b3b3';
     ctx.fillText(truncateText(ctx, channel, maxTextWidth), leftMargin, textY);
 
-    // Album type (opcional, menor ainda)
-    if (albumType) {
-      textY += 40; // espaçamento pequeno
-      ctx.font = '400 30px Inter';
-      ctx.fillStyle = '#909090';
-      ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
-    }
-
     // Progresso
     const currentSec = timeToSeconds(currentTime);
     const totalSec = timeToSeconds(totalTime);
