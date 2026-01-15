@@ -44,9 +44,9 @@ export default async function handler(req, res) {
     const { 
       title = "Título da música",
       channel = "Artista",
-      albumType = "",
+      albumType = "Single",
       thumbnail = null,
-      currentTime = "0:00",
+      currentTime = "1:00",
       totalTime = "3:56"
     } = req.method === "POST" ? req.body : req.query;
 
