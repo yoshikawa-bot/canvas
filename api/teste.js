@@ -152,7 +152,7 @@ export default async function handler(req, res) {
     const barWidth = W - 230;
     
     // Aumentado a altura da barra (antes era 10)
-    const barHeight = 15; 
+    const barHeight = 10; 
     const barY = progressBottom - barHeight / 2;
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
