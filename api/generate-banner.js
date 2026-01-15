@@ -85,39 +85,49 @@ export default async function handler(req, res) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    try {
-      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/76f9e52a.jpg";
-      const response = await fetch(bgUrl);
-      
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      
-      const arrayBuffer = await response.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
-      const bg = await loadImage(buffer);
-      
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(30, 30, W - 60, H - 60, 120);
-      ctx.clip();
-      ctx.drawImage(bg, 0, 0, W, H);
-      ctx.restore();
-      
-    } catch (e) {
-      console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
-      
-      ctx.save();
-      ctx.beginPath();
-      ctx.roundRect(30, 30, W - 60, H - 60, 120);
-      ctx.clip();
-      
-      const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
-      gradient.addColorStop(0, "#ffe5ed");
-      gradient.addColorStop(0.5, "#ffb3c8");
-      gradient.addColorStop(1, "#db7093");
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, 0, W, H);
-      ctx.restore();
+    // --- INÍCIO DA ALTERAÇÃO DO FUNDO ---
+    ctx.save();
+    ctx.beginPath();
+    // Define a área de recorte arredondada
+    ctx.roundRect(30, 30, W - 60, H - 60, 120);
+    ctx.clip();
+
+    let bgDrawn = false;
+
+    // Tenta usar a thumbnail fornecida como fundo
+    if (thumbnail) {
+      try {
+        const response = await fetch(thumbnail);
+        if (response.ok) {
+          const arrayBuffer = await response.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const bgImg = await loadImage(buffer);
+          
+          // Aplica o blur de 70% (interpretado como 70px para um desfoque forte)
+          ctx.filter = 'blur(70px)';
+          
+          // Desenha a imagem esticada para cobrir todo o canvas.
+          // Desenhamos ligeiramente maior (-50 offset) para evitar bordas brancas causadas pelo blur forte.
+          ctx.drawImage(bgImg, -50, -50, W + 100, H + 100);
+          bgDrawn = true;
+        }
+      } catch (e) {
+        console.log("Não foi possível carregar a thumbnail para o fundo, usando fallback:", e.message);
+      }
     }
+
+    // Fallback: Se não houve thumbnail ou falhou, usa o gradiente original
+    if (!bgDrawn) {
+        ctx.filter = 'none'; // Garante que o filtro está resetado
+        const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
+        gradient.addColorStop(0, "#ffe5ed");
+        gradient.addColorStop(0.5, "#ffb3c8");
+        gradient.addColorStop(1, "#db7093");
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+    // --- FIM DA ALTERAÇÃO DO FUNDO ---
 
     const cardW = 1200;
     const cardH = 700;
