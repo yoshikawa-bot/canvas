@@ -120,30 +120,30 @@ export default async function handler(req, res) {
     ctx.shadowColor = 'transparent';
 
     // Textos alinhados à direita, abaixo da capa, tamanhos menores
-    const rightMargin = 100;
-    const textX = W - rightMargin;
-    const maxTextWidth = W - rightMargin - 100; // margem segura à esquerda
+    const leftMargin = 100;
+    const textX = W - leftMargin;
+    const maxTextWidth = W - leftMargin - 100; // margem segura à esquerda
 
     let textY = coverY + coverSize + 80;
 
     // Título (menor que antes)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 78px Inter';
-    ctx.textAlign = 'right';
+    ctx.font = 'bold 70px Inter';
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), textX, textY);
 
     textY += 100;
 
     // Artista(s) (menor ainda)
-    ctx.font = '500 54px Inter';
+    ctx.font = '500 50px Inter';
     ctx.fillStyle = '#b3b3b3';
     ctx.fillText(truncateText(ctx, channel, maxTextWidth), textX, textY);
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 80;
-      ctx.font = '400 46px Inter';
+      textY += 60;
+      ctx.font = '400 40px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(truncateText(ctx, albumType, maxTextWidth), textX, textY);
     }
