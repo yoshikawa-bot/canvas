@@ -90,7 +90,7 @@ export default async function handler(req, res) {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Capa central sharp – SEM cantos arredondados + sombra forte
+    // Capa central sharp – sem cantos arredondados + sombra forte
     const coverSize = 780;
     const coverX = (W - coverSize) / 2;
     const coverY = 120;
@@ -119,31 +119,33 @@ export default async function handler(req, res) {
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
-    // Textos – centralizados perfeitamente
-    let textY = coverY + coverSize + 100;
+    // Textos alinhados à direita, abaixo da capa, tamanhos menores
+    const rightMargin = 100;
+    const textX = W - rightMargin;
+    const maxTextWidth = W - rightMargin - 100; // margem segura à esquerda
 
-    // Título (grande e bold)
+    let textY = coverY + coverSize + 80;
+
+    // Título (menor que antes)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 100px Inter';
-    ctx.textAlign = 'center';
+    ctx.font = 'bold 78px Inter';
+    ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
-    const truncatedTitle = truncateText(ctx, title, W - 200);
-    ctx.fillText(truncatedTitle, W / 2, textY);
+    ctx.fillText(truncateText(ctx, title, maxTextWidth), textX, textY);
 
-    textY += 140;
+    textY += 100;
 
-    // Artista(s)
-    ctx.font = '500 62px Inter';
+    // Artista(s) (menor ainda)
+    ctx.font = '500 54px Inter';
     ctx.fillStyle = '#b3b3b3';
-    const truncatedChannel = truncateText(ctx, channel, W - 200);
-    ctx.fillText(truncatedChannel, W / 2, textY);
+    ctx.fillText(truncateText(ctx, channel, maxTextWidth), textX, textY);
 
-    // Album type (opcional)
+    // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 90;
-      ctx.font = '400 52px Inter';
+      textY += 80;
+      ctx.font = '400 46px Inter';
       ctx.fillStyle = '#909090';
-      ctx.fillText(albumType, W / 2, textY);
+      ctx.fillText(truncateText(ctx, albumType, maxTextWidth), textX, textY);
     }
 
     // Progresso
@@ -151,10 +153,10 @@ export default async function handler(req, res) {
     const totalSec = timeToSeconds(totalTime);
     const ratio = totalSec > 0 ? Math.max(0, Math.min(1, currentSec / totalSec)) : 0;
 
-    // Barra de progresso (fina, na parte inferior)
-    const progressBottom = H - 140;
-    const barX = 120;
-    const barWidth = W - 240;
+    // Barra de progresso (mais baixa)
+    const progressBottom = H - 80;
+    const barX = 100;
+    const barWidth = W - 200;
     const barHeight = 5;
     const barY = progressBottom - barHeight / 2;
 
@@ -179,9 +181,9 @@ export default async function handler(req, res) {
       ctx.fill();
     }
 
-    // Tempos (abaixo da barra)
-    const timeY = progressBottom + 60;
-    ctx.font = '400 46px Inter';
+    // Tempos (bem menores, mais abaixo da barra)
+    const timeY = progressBottom + 50;
+    ctx.font = '400 36px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
 
@@ -191,12 +193,12 @@ export default async function handler(req, res) {
     ctx.textAlign = 'right';
     ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
 
-    // Logo Spotify (topo direito)
+    // Logo Spotify (mais pro canto direito)
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 60px Inter';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.fillText('Spotify', W - 80, 80);
+    ctx.fillText('Spotify', W - 50, 70);
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
