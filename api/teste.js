@@ -123,7 +123,7 @@ export default async function handler(req, res) {
     const leftMargin = 100;
     const maxTextWidth = W - leftMargin - 100;
 
-    let textY = coverY + coverSize + 70;
+    let textY = coverY + coverSize + 80;
 
     // Título (menor)
     ctx.fillStyle = '#FFFFFF';
@@ -132,7 +132,7 @@ export default async function handler(req, res) {
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
-    textY += 50; // espaçamento pequeno
+    textY += 60; // espaçamento pequeno
 
     // Artista(s) (menor)
     ctx.font = '500 48px Inter';
@@ -141,7 +141,7 @@ export default async function handler(req, res) {
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 40; // espaçamento pequeno
+      textY += 50; // espaçamento pequeno
       ctx.font = '400 30px Inter';
       ctx.fillStyle = '#909090';
       ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
@@ -156,7 +156,7 @@ export default async function handler(req, res) {
     const progressBottom = H - 60;
     const barX = 100;
     const barWidth = W - 230;
-    const barHeight = 8;
+    const barHeight = 10;
     const barY = progressBottom - barHeight / 2;
 
     // Base da barra
@@ -181,7 +181,7 @@ export default async function handler(req, res) {
     }
 
     // Tempos (bem menores)
-    const timeY = progressBottom + 40;
+    const timeY = progressBottom + 30;
     ctx.font = '400 30px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
