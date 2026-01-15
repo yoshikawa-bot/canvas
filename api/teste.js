@@ -10,10 +10,12 @@ try {
   if (!GlobalFonts.has('Inter')) {
     GlobalFonts.registerFromPath(fontPath, 'Inter');
   }
-} catch (e) {}
+} catch (e) {
+  console.log("Erro fonte:", e);
+}
 
 const GREEN = "#4ADE80";
-const DARK_OVERLAY = "rgba(0, 0, 0, 0.75)";
+const DARK_OVERLAY = "rgba(0, 0, 0, 0.85)"; // Ajustei levemente para garantir leitura sem o blur
 
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
@@ -24,6 +26,21 @@ function truncateText(ctx, text, maxWidth) {
   return tmp + "...";
 }
 
+function timeToSeconds(t) {
+  if (!t) return 0;
+  const p = t.split(':').map(Number);
+  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
+  if (p.length === 2) return p[0] * 60 + p[1];
+  return 0;
+}
+
+// Função auxiliar nova para formatar os 60% de volta em texto
+function formatTime(seconds) {
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -32,11 +49,10 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título",
+      title = "Título da música",
       channel = "Artista",
       thumbnail = null,
-      currentTime = "0:00",
-      totalTime = "0:00"
+      totalTime = "3:00" // Valor padrão caso não venha
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1200;
@@ -55,14 +71,22 @@ export default async function handler(req, res) {
           img = await loadImage(buf);
           thumbnailLoaded = true;
         }
-      } catch (e) {}
+      } catch (e) {
+        console.log("Erro thumbnail:", e);
+      }
     }
 
     if (thumbnailLoaded) {
       const scale = Math.max(W / img.width, H / img.height) * 1.4;
-      ctx.filter = 'blur(70px)';
-      ctx.drawImage(img, (W - img.width * scale) / 2, (H - img.height * scale) / 2, img.width * scale, img.height * scale);
-      ctx.filter = 'none';
+      const dw = img.width * scale;
+      const dh = img.height * scale;
+      const dx = (W - dw) / 2;
+      const dy = (H - dh) / 2;
+      
+      // REMOVIDO: ctx.filter = 'blur(70px)';
+      ctx.drawImage(img, dx, dy, dw, dh);
+      // ctx.filter = 'none'; // Não é mais necessário resetar
+      
       ctx.fillStyle = DARK_OVERLAY;
       ctx.fillRect(0, 0, W, H);
     } else {
@@ -80,10 +104,19 @@ export default async function handler(req, res) {
 
     if (thumbnailLoaded) {
       const cscale = Math.max(coverSize / img.width, coverSize / img.height);
-      ctx.drawImage(img, coverX + (coverSize - img.width * cscale) / 2, coverY + (coverSize - img.height * cscale) / 2, img.width * cscale, img.height * cscale);
+      const cw = img.width * cscale;
+      const ch = img.height * cscale;
+      const cx = coverX + (coverSize - cw) / 2;
+      const cy = coverY + (coverSize - ch) / 2;
+      ctx.drawImage(img, cx, cy, cw, ch);
     } else {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(coverX, coverY, coverSize, coverSize);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 340px Inter';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('♪', W / 2, coverY + coverSize / 2);
     }
 
     ctx.shadowBlur = 0;
@@ -96,6 +129,7 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 70px Inter';
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
     textY += 60;
@@ -103,11 +137,22 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#b3b3b3';
     ctx.fillText(truncateText(ctx, channel, maxTextWidth), leftMargin, textY);
 
-    const ratio = 0.6;
+    // --- LÓGICA DE 60% ---
+    const totalSec = timeToSeconds(totalTime);
+    
+    // Calcula 60%
+    const ratio = 0.6; 
+    const calculatedSec = totalSec * ratio;
+    
+    // Define o texto do tempo atual com base nos 60%
+    const displayCurrentTime = formatTime(calculatedSec);
+
     const progressBottom = H - 60;
     const barX = 100;
     const barWidth = W - 230;
-    const barHeight = 10;
+    
+    // Aumentado a altura da barra (antes era 10)
+    const barHeight = 22; 
     const barY = progressBottom - barHeight / 2;
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
@@ -115,33 +160,40 @@ export default async function handler(req, res) {
     ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
     ctx.fill();
 
+    const filledWidth = barWidth * ratio;
     ctx.fillStyle = GREEN;
     ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, barHeight / 2);
+    ctx.roundRect(barX, barY, filledWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(barX + (barWidth * ratio), barY + barHeight / 2, 9, 0, Math.PI * 2);
-    ctx.fill();
+    if (ratio > 0 && ratio < 1) {
+      ctx.fillStyle = '#FFFFFF';
+      ctx.beginPath();
+      // Ajustei levemente o raio da bolinha para acompanhar a altura da barra
+      ctx.arc(barX + filledWidth, barY + barHeight / 2, 14, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
-    const timeY = progressBottom + 30;
+    const timeY = progressBottom + 35; // Ajuste leve no Y do texto
     ctx.font = '400 26px Inter';
     ctx.fillStyle = '#FFFFFF';
+    ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    ctx.fillText(currentTime, barX, timeY);
+    // Usa o tempo calculado (60%)
+    ctx.fillText(displayCurrentTime || "0:00", barX, timeY);
     ctx.textAlign = 'right';
-    ctx.fillText(totalTime, barX + barWidth, timeY);
+    ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
 
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 50px Inter';
     ctx.textAlign = 'right';
+    ctx.textBaseline = 'top';
     ctx.fillText('Spotify', W - 40, 40);
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
   } catch (e) {
-    res.status(500).send("Erro");
+    res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
   }
 }
