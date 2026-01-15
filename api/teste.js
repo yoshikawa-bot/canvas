@@ -155,8 +155,8 @@ export default async function handler(req, res) {
     // Barra de progresso (mais baixa)
     const progressBottom = H - 80;
     const barX = 100;
-    const barWidth = W - 200;
-    const barHeight = 5;
+    const barWidth = W - 230;
+    const barHeight = 8;
     const barY = progressBottom - barHeight / 2;
 
     // Base da barra
