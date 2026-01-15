@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     const { 
       title = "Título da música",
       channel = "Artista",
-      albumType = "single",
+      albumType = "",
       thumbnail = null,
       currentTime = "0:00",
       totalTime = "3:56"
@@ -119,33 +119,32 @@ export default async function handler(req, res) {
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
-    // Textos alinhados à direita, abaixo da capa, tamanhos menores
+    // Textos alinhados à esquerda, abaixo da capa, tamanhos menores e com pouco espaçamento
     const leftMargin = 100;
-    const textX = W - leftMargin;
-    const maxTextWidth = W - leftMargin - 100; // margem segura à esquerda
+    const maxTextWidth = W - leftMargin - 100;
 
-    let textY = coverY + coverSize + 80;
+    let textY = coverY + coverSize + 70;
 
-    // Título (menor que antes)
+    // Título (menor)
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 70px Inter';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillText(truncateText(ctx, title, maxTextWidth), textX, textY);
+    ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
-    textY += 100;
+    textY += 80; // espaçamento pequeno
 
-    // Artista(s) (menor ainda)
-    ctx.font = '500 50px Inter';
+    // Artista(s) (menor)
+    ctx.font = '500 48px Inter';
     ctx.fillStyle = '#b3b3b3';
-    ctx.fillText(truncateText(ctx, channel, maxTextWidth), textX, textY);
+    ctx.fillText(truncateText(ctx, channel, maxTextWidth), leftMargin, textY);
 
     // Album type (opcional, menor ainda)
     if (albumType) {
-      textY += 60;
-      ctx.font = '400 40px Inter';
+      textY += 70; // espaçamento pequeno
+      ctx.font = '400 42px Inter';
       ctx.fillStyle = '#909090';
-      ctx.fillText(truncateText(ctx, albumType, maxTextWidth), textX, textY);
+      ctx.fillText(truncateText(ctx, albumType, maxTextWidth), leftMargin, textY);
     }
 
     // Progresso
@@ -181,7 +180,7 @@ export default async function handler(req, res) {
       ctx.fill();
     }
 
-    // Tempos (bem menores, mais abaixo da barra)
+    // Tempos (bem menores)
     const timeY = progressBottom + 50;
     ctx.font = '400 36px Inter';
     ctx.fillStyle = '#FFFFFF';
@@ -193,12 +192,12 @@ export default async function handler(req, res) {
     ctx.textAlign = 'right';
     ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
 
-    // Logo Spotify (mais pro canto direito)
+    // Logo Spotify (mais distante do canto/topo para evitar sobreposição)
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 60px Inter';
     ctx.textAlign = 'right';
     ctx.textBaseline = 'top';
-    ctx.fillText('Spotify', W - 50, 70);
+    ctx.fillText('Spotify', W - 40, 60);
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
