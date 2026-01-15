@@ -181,7 +181,7 @@ export default async function handler(req, res) {
     }
 
     // Tempos (bem menores)
-    const timeY = progressBottom + 50;
+    const timeY = progressBottom + 80;
     ctx.font = '400 30px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
