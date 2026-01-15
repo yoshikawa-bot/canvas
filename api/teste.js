@@ -10,9 +10,7 @@ try {
   if (!GlobalFonts.has('Inter')) {
     GlobalFonts.registerFromPath(fontPath, 'Inter');
   }
-} catch (e) {
-  console.log("Erro fonte:", e);
-}
+} catch (e) {}
 
 const GREEN = "#4ADE80";
 const DARK_OVERLAY = "rgba(0, 0, 0, 0.75)";
@@ -26,14 +24,6 @@ function truncateText(ctx, text, maxWidth) {
   return tmp + "...";
 }
 
-function timeToSeconds(t) {
-  if (!t) return 0;
-  const p = t.split(':').map(Number);
-  if (p.length === 3) return p[0] * 3600 + p[1] * 60 + p[2];
-  if (p.length === 2) return p[0] * 60 + p[1];
-  return 0;
-}
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -42,7 +32,7 @@ export default async function handler(req, res) {
 
   try {
     const { 
-      title = "Título da música",
+      title = "Título",
       channel = "Artista",
       thumbnail = null,
       currentTime = "0:00",
@@ -65,19 +55,13 @@ export default async function handler(req, res) {
           img = await loadImage(buf);
           thumbnailLoaded = true;
         }
-      } catch (e) {
-        console.log("Erro thumbnail:", e);
-      }
+      } catch (e) {}
     }
 
     if (thumbnailLoaded) {
       const scale = Math.max(W / img.width, H / img.height) * 1.4;
-      const dw = img.width * scale;
-      const dh = img.height * scale;
-      const dx = (W - dw) / 2;
-      const dy = (H - dh) / 2;
       ctx.filter = 'blur(70px)';
-      ctx.drawImage(img, dx, dy, dw, dh);
+      ctx.drawImage(img, (W - img.width * scale) / 2, (H - img.height * scale) / 2, img.width * scale, img.height * scale);
       ctx.filter = 'none';
       ctx.fillStyle = DARK_OVERLAY;
       ctx.fillRect(0, 0, W, H);
@@ -96,19 +80,10 @@ export default async function handler(req, res) {
 
     if (thumbnailLoaded) {
       const cscale = Math.max(coverSize / img.width, coverSize / img.height);
-      const cw = img.width * cscale;
-      const ch = img.height * cscale;
-      const cx = coverX + (coverSize - cw) / 2;
-      const cy = coverY + (coverSize - ch) / 2;
-      ctx.drawImage(img, cx, cy, cw, ch);
+      ctx.drawImage(img, coverX + (coverSize - img.width * cscale) / 2, coverY + (coverSize - img.height * cscale) / 2, img.width * cscale, img.height * cscale);
     } else {
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.fillRect(coverX, coverY, coverSize, coverSize);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 340px Inter';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('♪', W / 2, coverY + coverSize / 2);
     }
 
     ctx.shadowBlur = 0;
@@ -121,7 +96,6 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 70px Inter';
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
     textY += 60;
@@ -129,10 +103,7 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#b3b3b3';
     ctx.fillText(truncateText(ctx, channel, maxTextWidth), leftMargin, textY);
 
-    const currentSec = timeToSeconds(currentTime);
-    const totalSec = timeToSeconds(totalTime);
-    const ratio = totalSec > 0 ? Math.max(0, Math.min(1, currentSec / totalSec)) : 0;
-
+    const ratio = 0.6;
     const progressBottom = H - 60;
     const barX = 100;
     const barWidth = W - 230;
@@ -144,38 +115,33 @@ export default async function handler(req, res) {
     ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    const filledWidth = barWidth * ratio;
     ctx.fillStyle = GREEN;
     ctx.beginPath();
-    ctx.roundRect(barX, barY, filledWidth, barHeight, barHeight / 2);
+    ctx.roundRect(barX, barY, barWidth * ratio, barHeight, barHeight / 2);
     ctx.fill();
 
-    if (ratio > 0 && ratio < 1) {
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath();
-      ctx.arc(barX + filledWidth, barY + barHeight / 2, 9, 0, Math.PI * 2);
-      ctx.fill();
-    }
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.arc(barX + (barWidth * ratio), barY + barHeight / 2, 9, 0, Math.PI * 2);
+    ctx.fill();
 
     const timeY = progressBottom + 30;
     ctx.font = '400 26px Inter';
     ctx.fillStyle = '#FFFFFF';
-    ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
-    ctx.fillText(currentTime || "0:00", barX, timeY);
+    ctx.fillText(currentTime, barX, timeY);
     ctx.textAlign = 'right';
-    ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
+    ctx.fillText(totalTime, barX + barWidth, timeY);
 
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 50px Inter';
     ctx.textAlign = 'right';
-    ctx.textBaseline = 'top';
     ctx.fillText('Spotify', W - 40, 40);
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
   } catch (e) {
-    res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
+    res.status(500).send("Erro");
   }
 }
