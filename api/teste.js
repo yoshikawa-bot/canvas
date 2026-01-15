@@ -153,7 +153,7 @@ export default async function handler(req, res) {
     const ratio = totalSec > 0 ? Math.max(0, Math.min(1, currentSec / totalSec)) : 0;
 
     // Barra de progresso (mais baixa)
-    const progressBottom = H - 80;
+    const progressBottom = H - 60;
     const barX = 100;
     const barWidth = W - 230;
     const barHeight = 8;
