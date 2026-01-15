@@ -11,7 +11,7 @@ try {
     GlobalFonts.registerFromPath(fontPath, 'Inter');
   }
 } catch (e) {
-  console.log("Não foi possível carregar a fonte Inter. Usando padrão.");
+  console.log("Erro fonte:", e);
 }
 
 const GREEN = "#4ADE80";
@@ -44,10 +44,9 @@ export default async function handler(req, res) {
     const { 
       title = "Título da música",
       channel = "Artista",
-      albumType = "Single",
       thumbnail = null,
-      currentTime = "1:00",
-      totalTime = "3:56"
+      currentTime = "0:00",
+      totalTime = "0:00"
     } = req.method === "POST" ? req.body : req.query;
 
     const W = 1200;
@@ -67,22 +66,19 @@ export default async function handler(req, res) {
           thumbnailLoaded = true;
         }
       } catch (e) {
-        console.log("Erro ao carregar thumbnail:", e);
+        console.log("Erro thumbnail:", e);
       }
     }
 
-    // Fundo: imagem borrada + overlay escuro
     if (thumbnailLoaded) {
       const scale = Math.max(W / img.width, H / img.height) * 1.4;
       const dw = img.width * scale;
       const dh = img.height * scale;
       const dx = (W - dw) / 2;
       const dy = (H - dh) / 2;
-
       ctx.filter = 'blur(70px)';
       ctx.drawImage(img, dx, dy, dw, dh);
       ctx.filter = 'none';
-
       ctx.fillStyle = DARK_OVERLAY;
       ctx.fillRect(0, 0, W, H);
     } else {
@@ -90,7 +86,6 @@ export default async function handler(req, res) {
       ctx.fillRect(0, 0, W, H);
     }
 
-    // Capa central sharp – sem cantos arredondados + sombra forte
     const coverSize = 780;
     const coverX = (W - coverSize) / 2;
     const coverY = 120;
@@ -119,52 +114,42 @@ export default async function handler(req, res) {
     ctx.shadowBlur = 0;
     ctx.shadowColor = 'transparent';
 
-    // Textos alinhados à esquerda, abaixo da capa, tamanhos menores e com pouco espaçamento
     const leftMargin = 100;
     const maxTextWidth = W - leftMargin - 100;
-
     let textY = coverY + coverSize + 80;
 
-    // Título (menor)
     ctx.fillStyle = '#FFFFFF';
     ctx.font = 'bold 70px Inter';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(truncateText(ctx, title, maxTextWidth), leftMargin, textY);
 
-    textY += 60; // espaçamento pequeno
-
-    // Artista(s) (menor)
+    textY += 60;
     ctx.font = '500 48px Inter';
     ctx.fillStyle = '#b3b3b3';
     ctx.fillText(truncateText(ctx, channel, maxTextWidth), leftMargin, textY);
 
-    // Progresso
     const currentSec = timeToSeconds(currentTime);
     const totalSec = timeToSeconds(totalTime);
     const ratio = totalSec > 0 ? Math.max(0, Math.min(1, currentSec / totalSec)) : 0;
 
-    // Barra de progresso (mais baixa)
     const progressBottom = H - 60;
     const barX = 100;
     const barWidth = W - 230;
     const barHeight = 10;
     const barY = progressBottom - barHeight / 2;
 
-    // Base da barra
     ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
     ctx.beginPath();
     ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    // Preenchida (verde)
     const filledWidth = barWidth * ratio;
     ctx.fillStyle = GREEN;
     ctx.beginPath();
     ctx.roundRect(barX, barY, filledWidth, barHeight, barHeight / 2);
     ctx.fill();
 
-    // Indicador branco
     if (ratio > 0 && ratio < 1) {
       ctx.fillStyle = '#FFFFFF';
       ctx.beginPath();
@@ -172,19 +157,15 @@ export default async function handler(req, res) {
       ctx.fill();
     }
 
-    // Tempos (bem menores)
     const timeY = progressBottom + 30;
     ctx.font = '400 26px Inter';
     ctx.fillStyle = '#FFFFFF';
     ctx.textBaseline = 'middle';
-
     ctx.textAlign = 'left';
     ctx.fillText(currentTime || "0:00", barX, timeY);
-
     ctx.textAlign = 'right';
     ctx.fillText(totalTime || "0:00", barX + barWidth, timeY);
 
-    // Logo Spotify (mais distante do canto/topo para evitar sobreposição)
     ctx.fillStyle = GREEN;
     ctx.font = 'bold 50px Inter';
     ctx.textAlign = 'right';
@@ -194,9 +175,7 @@ export default async function handler(req, res) {
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
-
   } catch (e) {
-    console.error("Erro geral:", e);
     res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
   }
 }
