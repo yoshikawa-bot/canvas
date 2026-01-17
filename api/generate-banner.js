@@ -86,10 +86,12 @@ export default async function handler(req, res) {
       
       ctx.drawImage(img, dx, dy, dw, dh);
       
-      ctx.fillStyle = DARK_OVERLAY;
+      // ATUALIZADO: Camada preta com 90% de opacidade
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
       ctx.fillRect(0, 0, W, H);
     } else {
-      ctx.fillStyle = '#121212';
+      // ATUALIZADO: Fundo sólido ainda mais escuro (quase preto)
+      ctx.fillStyle = '#050505';
       ctx.fillRect(0, 0, W, H);
     }
 
@@ -97,9 +99,11 @@ export default async function handler(req, res) {
     const coverX = (W - coverSize) / 2;
     const coverY = 120;
 
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.9)';
+    // Sombra projetada pelo elemento seguinte (capa)
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.95)'; // Aumentei levemente a força da sombra também
     ctx.shadowBlur = 60;
     ctx.shadowOffsetY = 30;
+
 
     // Área da capa central
     if (thumbnailLoaded) {
