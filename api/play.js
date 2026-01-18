@@ -253,26 +253,71 @@ export default async function handler(req, res) {
     ctx.textAlign = 'right';
     ctx.fillText(displayRemaining, barX + barWidth, timeY);
 
-    // Controles
-    const controlsY = H - 120;
-    const playSize = 90;
-    const sideSize = 50;
-    const spacing = 120;
+ // Controles
+const controlsY = H - 120;
+const playSize = 90;
+const sideSize = 50;
+const spacing = 120;
+const pairGap = 10; // espaço entre os dois triângulos pequenos
 
-    ctx.fillStyle = '#FFFFFF';
+ctx.fillStyle = '#FFFFFF';
 
-    // Rewind
-    drawLeftTriangle(ctx, W/2 - spacing - 20, controlsY, sideSize);
-    drawLeftTriangle(ctx, W/2 - spacing + 20, controlsY, sideSize);
+// Centro da tela
+const centerX = W / 2;
 
-    // Play (triângulo maior)
-    drawRightTriangle(ctx, W/2 - playSize / 2, controlsY, playSize);
+// =====================
+// Rewind (esquerda)
+// =====================
+const rewindCenterX = centerX - spacing;
 
-    // Forward
-    drawRightTriangle(ctx, W/2 + spacing - 20, controlsY, sideSize);
-    drawRightTriangle(ctx, W/2 + spacing + 20, controlsY, sideSize);
+// triângulo da esquerda
+drawLeftTriangle(
+  ctx,
+  rewindCenterX - (sideSize / 2 + pairGap / 2),
+  controlsY,
+  sideSize
+);
 
-    ctx.restore(); // fim do clip
+// triângulo da direita
+drawLeftTriangle(
+  ctx,
+  rewindCenterX + (sideSize / 2 + pairGap / 2),
+  controlsY,
+  sideSize
+);
+
+// =====================
+// Play (centro)
+// =====================
+drawRightTriangle(
+  ctx,
+  centerX - playSize / 2,
+  controlsY,
+  playSize
+);
+
+// =====================
+// Forward (direita)
+// =====================
+const forwardCenterX = centerX + spacing;
+
+// triângulo da esquerda
+drawRightTriangle(
+  ctx,
+  forwardCenterX - (sideSize / 2 + pairGap / 2),
+  controlsY,
+  sideSize
+);
+
+// triângulo da direita
+drawRightTriangle(
+  ctx,
+  forwardCenterX + (sideSize / 2 + pairGap / 2),
+  controlsY,
+  sideSize
+);
+
+ctx.restore(); // fim do clip
 
     const buffer = canvas.toBuffer('image/png');
     res.setHeader("Content-Type", "image/png");
