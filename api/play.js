@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Fonte
 try {
   const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
   if (!GlobalFonts.has('Inter')) {
@@ -14,6 +15,7 @@ try {
   console.log("Erro fonte:", e);
 }
 
+// Utils
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -26,7 +28,6 @@ function truncateText(ctx, text, maxWidth) {
 function timeToSeconds(t) {
   if (!t) return 0;
   const p = t.split(':').map(Number);
-  if (p.length === 3) return p[0] * 3600 + p[[1]] * 60 + p[2];
   if (p.length === 2) return p[0] * 60 + p[1];
   return 0;
 }
@@ -37,6 +38,7 @@ function formatTime(seconds) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+// Triângulos
 function drawLeftTriangle(ctx, x, y, size) {
   ctx.beginPath();
   ctx.moveTo(x + size, y - size / 2);
@@ -55,14 +57,12 @@ function drawRightTriangle(ctx, x, y, size) {
   ctx.fill();
 }
 
+// =========================
+// HANDLER
+// =========================
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-  if (req.method === 'OPTIONS') return res.status(200).end();
-
   try {
-    const { 
+    const {
       channel = "Terence Howard",
       handle = "@terenceh",
       thumbnail = null,
@@ -74,255 +74,151 @@ export default async function handler(req, res) {
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    let img = null;
-    let thumbnailLoaded = false;
+    // -------------------------
+    // Background
+    // -------------------------
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, W, H);
 
+    let img = null;
     if (thumbnail) {
-      try {
-        const response = await fetch(thumbnail);
-        if (response.ok) {
-          const buf = Buffer.from(await response.arrayBuffer());
-          img = await loadImage(buf);
-          thumbnailLoaded = true;
-        }
-      } catch (e) {
-        console.log("Erro thumbnail:", e);
+      const response = await fetch(thumbnail);
+      if (response.ok) {
+        img = await loadImage(Buffer.from(await response.arrayBuffer()));
       }
     }
 
-    const radius = 100;
-
-    // Sombra externa do card
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetY = 20;
-    ctx.fillStyle = '#000000';
-    ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, radius);
-    ctx.fill();
-
-    // Reset sombra e clip para conteúdo
-    ctx.shadowBlur = 0;
-    ctx.save();
-    ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, radius);
-    ctx.clip();
-
-    // Imagem de fundo desfocada + imagem principal nítida
-    if (thumbnailLoaded) {
-      // Desfocado
+    if (img) {
       ctx.filter = 'blur(30px)';
-      let scale = Math.max(W / img.width, H / img.height) * 1.5;
-      let dw = img.width * scale;
-      let dh = img.height * scale;
-      let dx = (W - dw) / 2;
-      let dy = (H - dh) / 2;
-      ctx.drawImage(img, dx, dy, dw, dh);
-
-      // Nítida (leve zoom e ligeiramente para cima para cabeça mais alta)
+      ctx.drawImage(img, -200, -200, W + 400, H + 400);
       ctx.filter = 'none';
-      scale = Math.max(W / img.width, H / img.height) * 1.05;
-      dw = img.width * scale;
-      dh = img.height * scale;
-      dx = (W - dw) / 2;
-      dy = (H - dh) / 2 - 50;
-      ctx.drawImage(img, dx, dy, dw, dh);
-    } else {
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
-      ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 200px Inter';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('♪', W / 2, H / 2);
+
+      const scale = Math.max(W / img.width, H / img.height);
+      ctx.drawImage(
+        img,
+        (W - img.width * scale) / 2,
+        (H - img.height * scale) / 2 - 60,
+        img.width * scale,
+        img.height * scale
+      );
     }
 
-    // Vignette + gradiente inferior mais escuro
-    let radial = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, W * 0.8);
-    radial.addColorStop(0, 'rgba(0,0,0,0)');
-    radial.addColorStop(1, 'rgba(0,0,0,0.75)');
-    ctx.fillStyle = radial;
-    ctx.fillRect(0, 0, W, H);
-
-    let bottomGrad = ctx.createLinearGradient(0, H - 500, 0, H);
+    // Gradiente inferior
+    const bottomGrad = ctx.createLinearGradient(0, H - 500, 0, H);
     bottomGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    bottomGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    bottomGrad.addColorStop(1, 'rgba(0,0,0,0.85)');
     ctx.fillStyle = bottomGrad;
     ctx.fillRect(0, 0, W, H);
 
-    // Foto de perfil circular
-    const profileSize = 140;
-    const profileRadius = profileSize / 2;
-    const profileX = 60 + profileRadius;
-    const profileY = 60 + profileRadius;
+    // -------------------------
+    // Header
+    // -------------------------
+    const profileSize = 130;
+    const px = 80;
+    const py = 80;
 
-    if (thumbnailLoaded) {
+    if (img) {
       ctx.save();
       ctx.beginPath();
-      ctx.arc(profileX, profileY, profileRadius, 0, Math.PI * 2);
+      ctx.arc(px + profileSize / 2, py + profileSize / 2, profileSize / 2, 0, Math.PI * 2);
       ctx.clip();
-      const pscale = Math.max(profileSize / img.width, profileSize / img.height) * 1.5;
-      const pw = img.width * pscale;
-      const ph = img.height * pscale;
-      const px = profileX - pw / 2;
-      const py = profileY - ph / 2;
-      ctx.drawImage(img, px, py, pw, ph);
+      ctx.drawImage(img, px, py, profileSize, profileSize);
       ctx.restore();
-
-      // Borda sutil
-      ctx.lineWidth = 4;
-      ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-      ctx.beginPath();
-      ctx.arc(profileX, profileY, profileRadius, 0, Math.PI * 2);
-      ctx.stroke();
     }
 
-    // Nome e handle
-    const textX = profileX + profileRadius + 40;
-    const textY = profileY;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 70px Inter';
-    ctx.fillText(truncateText(ctx, channel, W - textX - 250), textX, textY - 40);
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 64px Inter';
+    ctx.fillText(truncateText(ctx, channel, 700), px + profileSize + 40, py + 40);
 
     ctx.fillStyle = '#b3b3b3';
-    ctx.font = '500 50px Inter';
-    ctx.fillText(truncateText(ctx, handle, W - textX - 250), textX, textY + 40);
+    ctx.font = '48px Inter';
+    ctx.fillText(handle, px + profileSize + 40, py + 95);
 
-    // Ícones dislike e like (emoji – troque por path se não renderizar)
-    const iconY = profileY;
-    ctx.font = '70px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillText('👎', W - 140, iconY);
-    ctx.fillText('❤️', W - 70, iconY);
-
-    // Progresso
-    const ratio = 0.4; // ~0:52 de ~2:13 como na imagem
+    // -------------------------
+    // Barra de progresso
+    // -------------------------
+    const ratio = 0.4;
     const totalSec = timeToSeconds(totalTime);
-    const currentSec = Math.floor(totalSec * ratio);
-    const remainingSec = totalSec - currentSec;
-    const displayCurrent = formatTime(currentSec);
-    const displayRemaining = remainingSec > 0 ? `-${formatTime(remainingSec)}` : '0:00';
+    const current = formatTime(totalSec * ratio);
+    const remaining = `-${formatTime(totalSec * (1 - ratio))}`;
 
+    const barY = H - 320;
     const barX = 80;
-    const barWidth = W - 160;
-    const barHeight = 8;
-    const barY = H - 300;
+    const barW = W - 160;
 
-    const filledWidth = barWidth * ratio;
+    ctx.fillStyle = 'rgba(255,255,255,0.25)';
+    ctx.fillRect(barX, barY, barW, 6);
 
-    // Fundo da barra
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-    ctx.beginPath();
-    ctx.roundRect(barX, barY, barWidth, barHeight, barHeight / 2);
-    ctx.fill();
+    ctx.fillStyle = '#fff';
+    ctx.fillRect(barX, barY, barW * ratio, 6);
 
-    // Barra preenchida
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.roundRect(barX, barY, filledWidth, barHeight, barHeight / 2);
-    ctx.fill();
-
-    // Knob
-    if (ratio > 0 && ratio < 1) {
-      const knobX = barX + filledWidth;
-      const knobY = barY + barHeight / 2;
-      const knobRadius = 16;
-
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 8;
-      ctx.fillStyle = '#FFFFFF';
-      ctx.beginPath();
-      ctx.arc(knobX, knobY, knobRadius, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.shadowBlur = 0;
-    }
-
-    // Tempos
-    const timeY = barY + barHeight + 50;
-    ctx.font = '400 40px Inter';
-    ctx.fillStyle = '#FFFFFF';
-    ctx.textBaseline = 'middle';
-    ctx.textAlign = 'left';
-    ctx.fillText(displayCurrent, barX, timeY);
+    ctx.font = '36px Inter';
+    ctx.fillText(current, barX, barY + 40);
     ctx.textAlign = 'right';
-    ctx.fillText(displayRemaining, barX + barWidth, timeY);
+    ctx.fillText(remaining, barX + barW, barY + 40);
+    ctx.textAlign = 'left';
 
- // Controles
-const controlsY = H - 120;
-const playSize = 90;
-const sideSize = 50;
-const spacing = 120;
-const pairGap = 10; // espaço entre os dois triângulos pequenos
+    // -------------------------
+    // CONTROLES (estilo widget)
+    // -------------------------
+    const controlsY = H - 170;
+    const playSize = 110;
+    const sideSize = 50;
+    const spacing = 180;
+    const pairGap = 10;
 
-ctx.fillStyle = '#FFFFFF';
+    const offsets = {
+      rewind: -70,
+      forward: 0
+    };
 
-// Centro da tela
-const centerX = W / 2;
-
-// =====================
-// Rewind (esquerda)
-// =====================
-const rewindCenterX = centerX - spacing;
-
-// triângulo da esquerda
-drawLeftTriangle(
-  ctx,
-  rewindCenterX - (sideSize / 2 + pairGap / 2),
-  controlsY,
-  sideSize
-);
-
-// triângulo da direita
-drawLeftTriangle(
-  ctx,
-  rewindCenterX + (sideSize / 2 + pairGap / 2),
-  controlsY,
-  sideSize
-);
-
-// =====================
-// Play (centro)
-// =====================
-drawRightTriangle(
-  ctx,
-  centerX - playSize / 2,
-  controlsY,
-  playSize
-);
-
-// =====================
-// Forward (direita)
-// =====================
-const forwardCenterX = centerX + spacing;
-
-// triângulo da esquerda
-drawRightTriangle(
-  ctx,
-  forwardCenterX - (sideSize / 2 + pairGap / 2),
-  controlsY,
-  sideSize
-);
-
-// triângulo da direita
-drawRightTriangle(
-  ctx,
-  forwardCenterX + (sideSize / 2 + pairGap / 2),
-  controlsY,
-  sideSize
-);
-
-ctx.restore(); // fim do clip
-
-    const buffer = canvas.toBuffer('image/png');
-    res.setHeader("Content-Type", "image/png");
-    res.send(buffer);
-  } catch (e) {
-    res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
-  }
+    function drawControlCircle(cx, cy, r, alpha = 0.06) {
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 25;
+      ctx.shadowOffsetY = 10;
+      ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
     }
+
+    ctx.fillStyle = '#fff';
+    const centerX = W / 2;
+
+    // Rewind
+    const rewindCX = centerX - spacing + offsets.rewind;
+    const r1 = rewindCX - (sideSize / 2 + pairGap / 2);
+    const r2 = rewindCX + (sideSize / 2 + pairGap / 2);
+
+    drawControlCircle(r1 + sideSize / 2, controlsY, sideSize + 22);
+    drawControlCircle(r2 + sideSize / 2, controlsY, sideSize + 22);
+    drawLeftTriangle(ctx, r1, controlsY, sideSize);
+    drawLeftTriangle(ctx, r2, controlsY, sideSize);
+
+    // Play
+    drawControlCircle(centerX, controlsY, playSize + 32, 0.08);
+    drawRightTriangle(ctx, centerX - playSize / 2, controlsY, playSize);
+
+    // Forward
+    const forwardCX = centerX + spacing + offsets.forward;
+    const f1 = forwardCX - (sideSize / 2 + pairGap / 2);
+    const f2 = forwardCX + (sideSize / 2 + pairGap / 2);
+
+    drawControlCircle(f1 + sideSize / 2, controlsY, sideSize + 22);
+    drawControlCircle(f2 + sideSize / 2, controlsY, sideSize + 22);
+    drawRightTriangle(ctx, f1, controlsY, sideSize);
+    drawRightTriangle(ctx, f2, controlsY, sideSize);
+
+    // -------------------------
+    // Output
+    // -------------------------
+    const buffer = canvas.toBuffer('image/png');
+    res.setHeader('Content-Type', 'image/png');
+    res.send(buffer);
+
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+}
