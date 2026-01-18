@@ -14,58 +14,73 @@ try {
 
 // --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
 
-// FUNÇÃO CORAÇÃO REFEITA (Maior e centralizada)
+// FUNÇÃO CORAÇÃO REFEITA (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  // Escala aumentada para 1.0 (era 0.8) para ficar maior
-  const s = size * 1.0;
-  
-  // Desenho do coração centralizado no ponto (0,0)
+  // Escala ajustada para o formato mais cheio
+  const s = size * 0.9; 
+
   // Inicia na ponta inferior
-  ctx.moveTo(0, s * 0.5); 
-  // Curva esquerda para o topo esquerdo
-  ctx.bezierCurveTo(-s * 0.65, 0, -s * 0.3, -s * 0.55, 0, -s * 0.2);
-  // Curva direita do topo direito para a ponta inferior
-  ctx.bezierCurveTo(s * 0.3, -s * 0.55, s * 0.65, 0, 0, s * 0.5);
+  ctx.moveTo(0, s * 0.45); 
+
+  // Lado esquerdo (Curva Cúbica para formato arredondado)
+  ctx.bezierCurveTo(
+    -s * 0.7, s * 0.1,  // Control Point 1: Empurra para fora e para baixo
+    -s * 0.6, -s * 0.6, // Control Point 2: Empurra para cima e para dentro (topo arredondado)
+    0, -s * 0.25        // Ponto final: O "vale" central superior
+  );
+
+  // Lado direito (Espelhado)
+  ctx.bezierCurveTo(
+    s * 0.6, -s * 0.6, // Control Point 1 (espelho do CP2 acima)
+    s * 0.7, s * 0.1,  // Control Point 2 (espelho do CP1 acima)
+    0, s * 0.45        // Volta para a ponta inferior
+  );
   
   ctx.fill();
   ctx.restore();
 }
 
-// FUNÇÃO COMPARTILHAR REFEITA (Caixa maior, seta mais pra cima)
+// FUNÇÃO COMPARTILHAR REFEITA (Caixa fechada com gap, seta ligeiramente menor)
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
   ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 4.5; // Linha ligeiramente mais grossa para o tamanho maior
+  ctx.lineWidth = 4.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
-  // Escala base aumentada
-  const s = size * 0.85;
+  const s = size * 0.85; // Escala base
 
-  // Parâmetros da Caixa (Mais larga e mais alta)
-  const boxSideH = s * 0.55; // Largura horizontal
-  const boxTopY = -s * 0.1;  // Topo da caixa
-  const boxBottomY = s * 0.6; // Fundo da caixa
+  // --- CAIXA (Agora fechada com um espaço no topo) ---
+  const boxW = s * 0.55;
+  const boxTopY = -s * 0.1;
+  const boxBottomY = s * 0.6;
+  const gapW = s * 0.22; // Metade da largura do espaço onde a seta passa
 
-  // Desenha a caixa aberta
   ctx.beginPath();
-  ctx.moveTo(-boxSideH, boxTopY);
-  ctx.lineTo(-boxSideH, boxBottomY);
-  ctx.lineTo(boxSideH, boxBottomY);
-  ctx.lineTo(boxSideH, boxTopY);
+  // Desenha a parte esquerda do topo
+  ctx.moveTo(-gapW, boxTopY);
+  ctx.lineTo(-boxW, boxTopY);
+  // Lateral esquerda e fundo
+  ctx.lineTo(-boxW, boxBottomY);
+  ctx.lineTo(boxW, boxBottomY);
+  // Lateral direita e parte direita do topo
+  ctx.lineTo(boxW, boxTopY);
+  ctx.lineTo(gapW, boxTopY);
   ctx.stroke();
 
-  // Parâmetros da Seta (Movida para cima)
-  const arrowTipY = -s * 0.75; // Ponta bem mais alta
-  const arrowBaseY = s * 0.1;  // Base da haste mais alta
-  const arrowHeadW = s * 0.35; // Largura da cabeça da seta
+  // --- SETA (Ligeiramente menor) ---
+  const arrowScale = 0.92; // Fator de redução leve na seta
+  const arrowTipY = -s * 0.75 * arrowScale; // Ponta mais alta
+  const arrowBaseY = s * 0.1 * arrowScale;  // Base da haste
+  const arrowHeadH = s * 0.25 * arrowScale; // Altura da cabeça da seta
+  const arrowHeadW = s * 0.35 * arrowScale; // Largura da cabeça da seta
 
-  // Haste central da seta
+  // Haste central
   ctx.beginPath();
   ctx.moveTo(0, arrowBaseY);
   ctx.lineTo(0, arrowTipY);
@@ -73,9 +88,9 @@ function drawShareIcon(ctx, x, y, size) {
 
   // Cabeça da seta
   ctx.beginPath();
-  ctx.moveTo(-arrowHeadW, arrowTipY + s * 0.25);
+  ctx.moveTo(-arrowHeadW, arrowTipY + arrowHeadH);
   ctx.lineTo(0, arrowTipY);
-  ctx.lineTo(arrowHeadW, arrowTipY + s * 0.25);
+  ctx.lineTo(arrowHeadW, arrowTipY + arrowHeadH);
   ctx.stroke();
   ctx.restore();
 }
@@ -168,7 +183,7 @@ export default async function handler(req, res) {
 
     const {
       channel = "Terence Howard",
-      handle = "@terenceh",
+      handle = "@yoshikawa",
       thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
@@ -235,7 +250,7 @@ export default async function handler(req, res) {
     // --- BOTÕES DE TOPO (Heart e Share) ---
     const likeX = W - PADDING - headerH/2;
     const shareX = likeX - headerH - 10;
-    const topIconSize = 52; // Tamanho base ligeiramente aumentado para os novos ícones
+    const topIconSize = 52; 
 
     // Botão Share
     drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
@@ -243,7 +258,6 @@ export default async function handler(req, res) {
 
     // Botão Like
     drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
-    // Removido o offset Y (-2) pois a nova função já centraliza corretamente
     drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
     // --- PROGRESS BAR ---
