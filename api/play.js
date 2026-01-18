@@ -151,7 +151,7 @@ export default async function handler(req, res) {
     
     // *** AJUSTE AQUI ***: O tamanho do conteúdo em relação ao fundo (0.1 a 1.0)
     // 0.85 significa que o cartão ocupará 85% do tamanho total da imagem.
-    const STICKER_SCALE = 0.92; 
+    const STICKER_SCALE = 0.94; 
 
     // --- CÁLCULOS DE POSICIONAMENTO ---
     const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
@@ -170,7 +170,7 @@ export default async function handler(req, res) {
 
     const {
       channel = "Terence Howard",
-      handle = "@terenceh",
+      handle = "@kawalyansky",
       thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
