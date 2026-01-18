@@ -5,155 +5,253 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Registra a fonte (Inter ou similar do sistema iOS)
+// --- 1. CARREGAMENTO DE FONTES (Igual ao código de Música que funciona) ---
 try {
-  const fontPath = path.join(__dirname, '../fonts/Inter-Bold.ttf');
-  const fontRegular = path.join(__dirname, '../fonts/Inter-Regular.ttf');
-  
-  // Tenta registrar, se falhar usa Arial como fallback
-  if (!GlobalFonts.has('Inter-Bold')) GlobalFonts.registerFromPath(fontPath, 'Inter-Bold');
-  if (!GlobalFonts.has('Inter-Regular')) GlobalFonts.registerFromPath(fontRegular, 'Inter-Regular');
-} catch (e) { }
-
-const fontBold = 'Inter-Bold, "Segoe UI", Roboto, sans-serif';
-const fontReg = 'Inter-Regular, "Segoe UI", Roboto, sans-serif';
-
-// Função auxiliar para desenhar Retângulos Arredondados
-function roundRect(ctx, x, y, width, height, radius) {
-  ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
-  ctx.closePath();
+  // Ajuste o caminho conforme sua estrutura de pastas real
+  const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+  if (!GlobalFonts.has('Inter')) {
+    GlobalFonts.registerFromPath(fontPath, 'Inter');
+  }
+} catch (e) { 
+  console.log("Erro ao carregar fonte:", e);
 }
 
-// Desenha o ícone de seta (Chevron) >
-function drawChevron(ctx, x, y, size, color) {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+// --- 2. FUNÇÕES AUXILIARES DE DESENHO (Reutilizadas do Music Canvas) ---
+
+// Efeito de Vidro em Retângulo (Pílula)
+function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
+  ctx.save();
   ctx.beginPath();
-  ctx.moveTo(x, y - size);
-  ctx.lineTo(x + size * 0.6, y);
-  ctx.lineTo(x, y + size);
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.clip();
+  if (bgImg) {
+    ctx.filter = 'blur(20px)';
+    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+  }
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; // Um pouco mais escuro para leitura
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1.5;
   ctx.stroke();
+  ctx.restore();
 }
+
+// Efeito de Vidro em Círculo (Avatar)
+function drawGlassCircle(ctx, centerX, centerY, radius) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// --- 3. ÍCONES VETORIAIS PARA O PERFIL ---
+
+// Ícone de Coroa (Rank)
+function drawCrownIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = '#FFD700'; // Dourado
+  ctx.beginPath();
+  const s = size / 2;
+  ctx.moveTo(-s, s * 0.5); // Base esq
+  ctx.lineTo(s, s * 0.5);  // Base dir
+  ctx.lineTo(s, -s * 0.2); // Ponta dir
+  ctx.lineTo(s * 0.4, 0);  // Vale dir
+  ctx.lineTo(0, -s);       // Ponta central
+  ctx.lineTo(-s * 0.4, 0); // Vale esq
+  ctx.lineTo(-s, -s * 0.2); // Ponta esq
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// Ícone de ID Card
+function drawIDIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  const w = size * 0.8;
+  const h = size * 0.6;
+  ctx.strokeRect(-w/2, -h/2, w, h);
+  // Linhas internas simulando texto
+  ctx.beginPath();
+  ctx.moveTo(-w/2 + 5, -h/2 + 8);
+  ctx.lineTo(-w/2 + 15, -h/2 + 8); // Foto
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-w/2 + 20, -h/2 + 5);
+  ctx.lineTo(w/2 - 5, -h/2 + 5); // Linha 1
+  ctx.moveTo(-w/2 + 20, -h/2 + 12);
+  ctx.lineTo(w/2 - 5, -h/2 + 12); // Linha 2
+  ctx.stroke();
+  ctx.restore();
+}
+
+// --- 4. HANDLER PRINCIPAL ---
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
+    // Parâmetros (Design estilo "Sticker" igual ao de música)
+    const CANVAS_SIZE = 1080;
+    const MARGIN = 40; // Margem para o efeito de "adesivo"
+    const W = CANVAS_SIZE - (MARGIN * 2);
+    const H = CANVAS_SIZE - (MARGIN * 2);
+    const CARD_RADIUS = 60;
+    
+    // Dados da Requisição
     const {
-      name = "Usuário",
-      username = "user@id",
-      rank = "Membro", // Subtítulo (ex: Adulto na ref, aqui será o Rank/Nivel)
-      pp = "https://i.imgur.com/Te0cnz2.png" // Fallback image
+      name = "Yoshikawa",
+      username = "@usuario",
+      rank = "Admin", 
+      pp = "https://i.imgur.com/Te0cnz2.png" 
     } = req.method === "POST" ? req.body : req.query;
 
-    const W = 1080;
-    const H = 720; // Formato retangular estilo card mobile
-    const canvas = createCanvas(W, H);
+    const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
-    // 1. Fundo (Estilo iOS Settings - Cinza Claro)
-    ctx.fillStyle = '#F2F2F7';
-    ctx.fillRect(0, 0, W, H);
-
-    // 2. Avatar Circular (Centralizado no topo)
-    const avatarY = 100;
-    const avatarSize = 220;
-    const centerX = W / 2;
-
+    // --- CARREGAR IMAGEM ---
+    let img = null;
     try {
-      const img = await loadImage(pp);
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(centerX, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.clip();
-      ctx.drawImage(img, centerX - avatarSize / 2, avatarY, avatarSize, avatarSize);
-      ctx.restore();
+        const response = await fetch(pp);
+        const arrayBuffer = await response.arrayBuffer();
+        img = await loadImage(Buffer.from(arrayBuffer));
     } catch (e) {
-      // Fallback se imagem falhar
-      ctx.fillStyle = '#ccc';
-      ctx.beginPath();
-      ctx.arc(centerX, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.fill();
+        console.log("Erro ao carregar imagem, usando fallback cinza");
     }
 
-    // 3. Nome do Usuário
+    // --- FUNDO GERAL (Transparente para ser PNG) ---
+    // Movemos o contexto para dentro da margem (Sticker effect)
+    ctx.translate(MARGIN, MARGIN);
+
+    // 1. Clipping da Área Principal (Card Arredondado)
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, CARD_RADIUS);
+    ctx.clip();
+
+    // 2. Desenhar Background (Imagem com Zoom + Blur)
+    let bgRect = { x: 0, y: 0, w: W, h: H };
+    if (img) {
+        const BG_ZOOM = 1.5;
+        const scale = Math.max(W / img.width, H / img.height) * BG_ZOOM;
+        bgRect.w = img.width * scale;
+        bgRect.h = img.height * scale;
+        bgRect.x = (W - bgRect.w) / 2;
+        bgRect.y = (H - bgRect.h) / 2;
+        
+        ctx.filter = 'blur(40px)'; // Blur forte no fundo
+        ctx.drawImage(img, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+        ctx.filter = 'none';
+    } else {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0,0,W,H);
+    }
+
+    // 3. Overlay Escuro (Gradiente) para legibilidade
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // --- LAYOUT DO PERFIL ---
+    
+    // Constantes de Layout
+    const centerX = W / 2;
+    const avatarY = 180;
+    const avatarSize = 300; // Avatar grande
+
+    // 4. Desenhar Avatar Central
+    ctx.save();
+    // Sombra do Avatar
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 10;
+    
+    // Círculo da Imagem
+    ctx.beginPath();
+    ctx.arc(centerX, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI*2);
+    ctx.clip();
+    
+    if (img) {
+        // Desenha a imagem quadrada preenchendo o círculo
+        ctx.drawImage(img, centerX - avatarSize/2, avatarY, avatarSize, avatarSize);
+    } else {
+        ctx.fillStyle = '#333';
+        ctx.fillRect(centerX - avatarSize/2, avatarY, avatarSize, avatarSize);
+    }
+    ctx.restore();
+
+    // Borda de Vidro sobre o Avatar
+    drawGlassCircle(ctx, centerX, avatarY + avatarSize/2, avatarSize/2);
+
+    // 5. Textos (Nome e User)
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#000000';
-    ctx.font = `bold 55px ${fontBold}`;
-    ctx.fillText(name, centerX, avatarY + avatarSize + 70);
-
-    // 4. Subtítulo (Rank/Nível - Texto cinza pequeno)
-    ctx.fillStyle = '#8E8E93';
-    ctx.font = `400 32px ${fontReg}`;
-    ctx.fillText(rank, centerX, avatarY + avatarSize + 115);
-
-    // 5. Card "ID Yoshikawa" (Estilo lista iOS)
-    const cardW = 900;
-    const cardH = 160;
-    const cardX = (W - cardW) / 2;
-    const cardY = avatarY + avatarSize + 160;
-
-    // Sombra suave
-    ctx.shadowColor = "rgba(0,0,0,0.05)";
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 4;
-
-    // Fundo do Card Branco
+    
+    // Nome Principal
     ctx.fillStyle = '#FFFFFF';
-    roundRect(ctx, cardX, cardY, cardW, cardH, 20);
-    ctx.fill();
-    ctx.shadowColor = "transparent"; // Reset sombra
+    ctx.font = 'bold 65px Inter, sans-serif'; // Fonte maior
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(name, centerX, avatarY + avatarSize + 90);
+    ctx.shadowColor = 'transparent'; // Reset sombra
 
-    // Ícone Quadrado Cinza (Esquerda do card)
-    const iconSize = 100;
-    const iconMargin = 30;
-    const iconX = cardX + iconMargin;
-    const iconY = cardY + (cardH - iconSize) / 2;
+    // Username / ID (Subtítulo)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '400 35px Inter, sans-serif';
+    ctx.fillText(username, centerX, avatarY + avatarSize + 140);
+
+    // 6. Cards de Estatísticas (Glassmorphism)
+    // Vamos criar dois "cards" lado a lado ou um grande embaixo
+    const statsY = H - 280;
+    const cardGap = 40;
+    const cardWidth = 380;
+    const cardHeight = 160;
     
-    ctx.fillStyle = '#E5E5EA'; // Cinza do ícone
-    roundRect(ctx, iconX, iconY, iconSize, iconSize, 18);
-    ctx.fill();
+    // Posições X para centralizar dois cards
+    const leftCardX = centerX - cardWidth - (cardGap/2);
+    const rightCardX = centerX + (cardGap/2);
 
-    // Símbolo dentro do ícone (Um "ID" ou logo simples)
-    ctx.fillStyle = '#8E8E93';
-    ctx.font = `bold 40px ${fontBold}`;
-    ctx.textBaseline = 'middle';
-    ctx.fillText("ID", iconX + iconSize/2, iconY + iconSize/2 + 2);
-    ctx.textBaseline = 'alphabetic'; // Reset
-
-    // Texto do Card
+    // --- CARD 1: RANK ---
+    drawGlassRect(ctx, leftCardX, statsY, cardWidth, cardHeight, 30, img, bgRect);
+    drawCrownIcon(ctx, leftCardX + 60, statsY + cardHeight/2, 50);
+    
     ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '400 24px Inter, sans-serif';
+    ctx.fillText("RANK ATUAL", leftCardX + 110, statsY + 65);
     
-    // Título "ID Yoshikawa"
-    ctx.fillStyle = '#000000';
-    ctx.font = `400 38px ${fontReg}`;
-    ctx.fillText("ID Yoshikawa", iconX + iconSize + 30, cardY + 65);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 38px Inter, sans-serif';
+    // Trunca rank longo
+    let displayRank = rank;
+    if(displayRank.length > 12) displayRank = displayRank.substring(0,12) + "..";
+    ctx.fillText(displayRank, leftCardX + 110, statsY + 110);
 
-    // Subtítulo (Email/JID)
-    ctx.fillStyle = '#8E8E93';
-    ctx.font = `400 30px ${fontReg}`;
-    // Trunca o JID se for muito longo
-    let displayJid = username;
-    if (displayJid.length > 35) displayJid = displayJid.substring(0, 32) + "...";
-    ctx.fillText(displayJid, iconX + iconSize + 30, cardY + 115);
+    // --- CARD 2: ID / INFO ---
+    drawGlassRect(ctx, rightCardX, statsY, cardWidth, cardHeight, 30, img, bgRect);
+    drawIDIcon(ctx, rightCardX + 60, statsY + cardHeight/2, 50);
 
-    // Seta (Chevron) na direita
-    const arrowX = cardX + cardW - 50;
-    const arrowY = cardY + cardH / 2;
-    drawChevron(ctx, arrowX, arrowY, 12, '#C7C7CC');
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '400 24px Inter, sans-serif';
+    ctx.fillText("IDENTIFICADOR", rightCardX + 110, statsY + 65);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 32px Inter, sans-serif'; // Fonte um pouco menor pro ID
+    // O ID geralmente é o username sem o @ ou um numero, vamos limpar
+    let displayID = username.replace('@', '');
+    if(displayID.length > 14) displayID = displayID.substring(0,14) + "..";
+    ctx.fillText(displayID, rightCardX + 110, statsY + 110);
 
+    // Finalizar e Enviar
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
@@ -163,4 +261,3 @@ export default async function handler(req, res) {
     res.status(500).send("Erro na geração do perfil");
   }
 }
-
