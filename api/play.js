@@ -67,8 +67,8 @@ function drawShareIcon(ctx, x, y, size) {
 }
 
 // Função genérica para efeito de vidro em Círculos
-// Usada tanto nos botões superiores quanto nos inferiores
-function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
+// ATUALIZADO: Aceita o gradiente (overlayGrad) para igualar a iluminação
+function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect, overlayGrad) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
@@ -78,6 +78,13 @@ function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
     ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
   }
   ctx.filter = 'none';
+  
+  // CORREÇÃO: Aplica o gradiente do fundo dentro do vidro para manter consistência
+  if (overlayGrad) {
+      ctx.fillStyle = overlayGrad;
+      ctx.fill();
+  }
+
   ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -87,7 +94,8 @@ function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
 }
 
 // Função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
-function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
+// ATUALIZADO: Aceita o gradiente (overlayGrad) para igualar a iluminação
+function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect, overlayGrad) {
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, radius);
@@ -97,6 +105,13 @@ function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
     ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
   }
   ctx.filter = 'none';
+
+  // CORREÇÃO: Aplica o gradiente do fundo dentro do vidro para manter consistência
+  if (overlayGrad) {
+      ctx.fillStyle = overlayGrad;
+      ctx.fill();
+  }
+
   ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
   ctx.fill();
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
@@ -215,8 +230,8 @@ export default async function handler(req, res) {
     const pillX = PADDING, pillY = PADDING;
     const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    // Pílula com efeito de vidro
-    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
+    // Pílula com efeito de vidro (Passando 'grad' agora)
+    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect, grad);
     
     // Avatar circular
     const avSize = 110;
@@ -233,11 +248,9 @@ export default async function handler(req, res) {
     ctx.font = 'bold 42px Inter, sans-serif';
 
     const textStartX = pillX + avSize + 50;
-    // Calcula a largura máxima permitida para o texto (Largura da pílula - espaço do avatar - margem direita)
     const maxTextWidth = pillWidth - (avSize + 50) - 20; 
     let displayChannel = channel;
 
-    // Se o texto for maior que o espaço, trunca e adiciona "..."
     if (ctx.measureText(displayChannel).width > maxTextWidth) {
       while (ctx.measureText(displayChannel + '...').width > maxTextWidth && displayChannel.length > 0) {
         displayChannel = displayChannel.slice(0, -1);
@@ -256,12 +269,12 @@ export default async function handler(req, res) {
     const shareX = likeX - headerH - 10;
     const topIconSize = 52; 
 
-    // Botão Share
-    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
+    // Botão Share (Passando 'grad')
+    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect, grad);
     drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
 
-    // Botão Like
-    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
+    // Botão Like (Passando 'grad')
+    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect, grad);
     drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
     // --- PROGRESS BAR ---
@@ -286,10 +299,10 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
-    // Aplicando drawGlassCircle (efeito de vidro) igual aos botões superiores
-    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
+    // Aplicando drawGlassCircle com o gradiente ('grad') passado no final
+    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect, grad);
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect, grad);
+    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect, grad);
 
     // Ícones sobrepostos aos botões de vidro
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
