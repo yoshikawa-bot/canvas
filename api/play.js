@@ -203,7 +203,12 @@ export default async function handler(req, res) {
         ctx.drawImage(img, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
     }
 
-    // [MODIFICADO] Gradiente escuro removido aqui
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
 
     // --- HEADER ---
     const headerH = 150;
@@ -302,4 +307,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send("Erro na geração");
   }
-}
+      }
