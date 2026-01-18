@@ -13,6 +13,7 @@ try {
 } catch (e) { }
 
 // --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
+// (Nenhuma alteração nas funções de desenho)
 
 // FUNÇÃO CORAÇÃO REFEITA (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
@@ -20,31 +21,15 @@ function drawHeart(ctx, x, y, size) {
   ctx.translate(x, y);
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  // Escala ajustada para o formato mais cheio
   const s = size * 0.9; 
-
-  // Inicia na ponta inferior
   ctx.moveTo(0, s * 0.45); 
-
-  // Lado esquerdo (Curva Cúbica para formato arredondado)
-  ctx.bezierCurveTo(
-    -s * 0.7, s * 0.1,  // Control Point 1: Empurra para fora e para baixo
-    -s * 0.6, -s * 0.6, // Control Point 2: Empurra para cima e para dentro (topo arredondado)
-    0, -s * 0.25        // Ponto final: O "vale" central superior
-  );
-
-  // Lado direito (Espelhado)
-  ctx.bezierCurveTo(
-    s * 0.6, -s * 0.6, // Control Point 1 (espelho do CP2 acima)
-    s * 0.7, s * 0.1,  // Control Point 2 (espelho do CP1 acima)
-    0, s * 0.45        // Volta para a ponta inferior
-  );
-  
+  ctx.bezierCurveTo(-s * 0.7, s * 0.1, -s * 0.6, -s * 0.6, 0, -s * 0.25);
+  ctx.bezierCurveTo(s * 0.6, -s * 0.6, s * 0.7, s * 0.1, 0, s * 0.45);
   ctx.fill();
   ctx.restore();
 }
 
-// FUNÇÃO COMPARTILHAR REFEITA (Caixa fechada com gap, seta ligeiramente menor)
+// FUNÇÃO COMPARTILHAR REFEITA
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -52,41 +37,28 @@ function drawShareIcon(ctx, x, y, size) {
   ctx.lineWidth = 4.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-  
-  const s = size * 0.85; // Escala base
-
-  // --- CAIXA (Agora fechada com um espaço no topo) ---
+  const s = size * 0.85;
   const boxW = s * 0.55;
   const boxTopY = -s * 0.1;
   const boxBottomY = s * 0.6;
-  const gapW = s * 0.22; // Metade da largura do espaço onde a seta passa
-
+  const gapW = s * 0.22;
   ctx.beginPath();
-  // Desenha a parte esquerda do topo
   ctx.moveTo(-gapW, boxTopY);
   ctx.lineTo(-boxW, boxTopY);
-  // Lateral esquerda e fundo
   ctx.lineTo(-boxW, boxBottomY);
   ctx.lineTo(boxW, boxBottomY);
-  // Lateral direita e parte direita do topo
   ctx.lineTo(boxW, boxTopY);
   ctx.lineTo(gapW, boxTopY);
   ctx.stroke();
-
-  // --- SETA (Ligeiramente menor) ---
-  const arrowScale = 0.92; // Fator de redução leve na seta
-  const arrowTipY = -s * 0.75 * arrowScale; // Ponta mais alta
-  const arrowBaseY = s * 0.1 * arrowScale;  // Base da haste
-  const arrowHeadH = s * 0.25 * arrowScale; // Altura da cabeça da seta
-  const arrowHeadW = s * 0.35 * arrowScale; // Largura da cabeça da seta
-
-  // Haste central
+  const arrowScale = 0.92;
+  const arrowTipY = -s * 0.75 * arrowScale;
+  const arrowBaseY = s * 0.1 * arrowScale;
+  const arrowHeadH = s * 0.25 * arrowScale;
+  const arrowHeadW = s * 0.35 * arrowScale;
   ctx.beginPath();
   ctx.moveTo(0, arrowBaseY);
   ctx.lineTo(0, arrowTipY);
   ctx.stroke();
-
-  // Cabeça da seta
   ctx.beginPath();
   ctx.moveTo(-arrowHeadW, arrowTipY + arrowHeadH);
   ctx.lineTo(0, arrowTipY);
@@ -173,11 +145,22 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // --- MEDIDAS DE UI ---
-    // Mantemos a lógica baseada em 1080p, mas reduzimos a saída
-    const W = 1080, H = 1080;
-    const OUTPUT_SCALE = 0.8; // <--- AJUSTE AQUI: 0.8 = 864x864px (menor que original)
+    // --- CONSTANTES DE AJUSTE "ADESIVO" ---
+    const DESIGN_RES = 1080; // A resolução interna do design (não mudar)
+    const FINAL_CANVAS_SIZE = 1080; // O tamanho total do PNG gerado (fundo transparente)
+    
+    // *** AJUSTE AQUI ***: O tamanho do conteúdo em relação ao fundo (0.1 a 1.0)
+    // 0.85 significa que o cartão ocupará 85% do tamanho total da imagem.
+    const STICKER_SCALE = 0.85; 
 
+    // --- CÁLCULOS DE POSICIONAMENTO ---
+    const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
+    const margin = (FINAL_CANVAS_SIZE - stickerActualSize) / 2;
+    // Fator de escala para converter o design de 1080p para o tamanho real do adesivo
+    const scaleFactor = stickerActualSize / DESIGN_RES;
+
+    // --- MEDIDAS DE UI (Usam a resolução interna de design) ---
+    const W = DESIGN_RES, H = DESIGN_RES;
     const PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
     const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
@@ -192,12 +175,17 @@ export default async function handler(req, res) {
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
-    // Cria o canvas com o tamanho físico reduzido
-    const canvas = createCanvas(W * OUTPUT_SCALE, H * OUTPUT_SCALE);
+    // Cria o canvas com o tamanho total final (fundo transparente)
+    const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
-    // Aplica a escala global para converter a lógica de 1080p para o tamanho reduzido
-    ctx.scale(OUTPUT_SCALE, OUTPUT_SCALE);
+    // --- INÍCIO DA ÁREA DO "ADESIVO" ---
+    // Salva o estado limpo, move para o centro e aplica a escala
+    ctx.save();
+    ctx.translate(margin, margin);
+    ctx.scale(scaleFactor, scaleFactor);
+
+    // (A partir daqui, todo o desenho usa as coordenadas internas W/H de 1080p)
 
     let img = null;
     try {
@@ -208,7 +196,7 @@ export default async function handler(req, res) {
         }
     } catch (e) { }
 
-    // BG Clipping
+    // BG Clipping (Recorta apenas a área do cartão)
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
@@ -297,6 +285,10 @@ export default async function handler(req, res) {
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
     drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
+
+    // --- FIM DA ÁREA DO "ADESIVO" ---
+    // Restaura o contexto para que nada mais seja afetado pela escala/translação
+    ctx.restore(); 
 
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
