@@ -62,18 +62,41 @@ function drawShareIcon(ctx, x, y, size) {
   ctx.restore();
 }
 
+// Função genérica para efeito de vidro em Círculos
 function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
   ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
   ctx.clip();
   if (bgImg) {
-    ctx.filter = 'blur(25px)';
+    ctx.filter = 'blur(20px)';
     ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
   }
   ctx.filter = 'none';
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; // Overlay escuro suave
   ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // Borda sutil
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+// Nova função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
+function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.clip();
+  if (bgImg) {
+    ctx.filter = 'blur(20px)';
+    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+  }
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
   ctx.restore();
 }
 
@@ -120,7 +143,10 @@ export default async function handler(req, res) {
     // --- MEDIDAS DE UI ---
     const W = 1080, H = 1080, PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
-    const PLAY_BTN_RADIUS = 110, SIDE_BTN_RADIUS = 80;
+    
+    // ALTERADO: PLAY_BTN_RADIUS agora é 80 (igual ao SIDE_BTN_RADIUS)
+    const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
+    
     const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
     const PROGRESS_Y_BOTTOM = 360, TIME_SIZE = 48;
     const BG_ZOOM = 1.9;
@@ -169,14 +195,11 @@ export default async function handler(req, res) {
     // --- HEADER ---
     const headerH = 150;
     const pillX = PADDING, pillY = PADDING;
-    const pillWidth = W - PADDING*2 - headerH*2.2 - 20;
+    // Ajuste fino na largura da pílula para dar espaço aos botões
+    const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    // Fundo Perfil (Cápsula)
-    drawGlassCircle(ctx, pillX + headerH/2, pillY + headerH/2, headerH/2, img, bgRect); // Mock para blur no pill
-    ctx.fillStyle = 'rgba(40, 40, 40, 0.6)';
-    ctx.beginPath();
-    ctx.roundRect(pillX, pillY, pillWidth, headerH, headerH/2);
-    ctx.fill();
+    // ALTERADO: Aplica efeito de vidro na Pílula usando a função helper
+    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
     
     // Avatar circular
     const avSize = 110;
@@ -195,18 +218,20 @@ export default async function handler(req, res) {
     ctx.font = '400 32px Inter, sans-serif';
     ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
 
-    // Botões Topo (Coração e Share) com Efeito Glass
-    const likeX = W - PADDING - headerH/2;
-    const shareX = likeX - headerH - 25;
+    // --- BOTÕES DE TOPO (Heart e Share) ---
+    // Recalculo das posições para garantir alinhamento
+    const likeX = W - PADDING - headerH/2; // Centro do botão Like
+    const shareX = likeX - headerH - 10;   // Centro do botão Share (com um pequeno gap)
     
-    // Like
-    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
-    drawHeart(ctx, likeX, pillY + headerH/2 - 18, 45);
-
-    // Share
+    // ALTERADO: Efeito vidro + Ícone explicitamente desenhado por cima
+    
+    // Botão Share
     drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
-    drawShareIcon(ctx, shareX, pillY + headerH/2, 45);
+    drawShareIcon(ctx, shareX, pillY + headerH/2, 50); // Tamanho ajustado
 
+    // Botão Like
+    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
+    drawHeart(ctx, likeX, pillY + headerH/2 - 2, 50); // Ajuste fino no Y do ícone
 
     // --- PROGRESS BAR ---
     const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
@@ -230,10 +255,12 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
+    // Fundo dos botões de controle (todos com vidro)
     drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect); // Agora usa PLAY_BTN_RADIUS reduzido (80)
     drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
 
+    // Ícones dos controles
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
     drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
@@ -243,6 +270,7 @@ export default async function handler(req, res) {
     res.send(buffer);
 
   } catch (e) {
+    console.error(e);
     res.status(500).send("Erro na geração");
   }
 }
