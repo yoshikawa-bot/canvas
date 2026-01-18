@@ -6,25 +6,15 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- 1. CONFIGURAÇÃO DE FONTES ---
-// Certifique-se de ter uma fonte Sans-Serif moderna (Inter, Roboto ou SF Pro)
-try {
-  // Ajuste os caminhos conforme sua pasta
-  const fontRegular = path.join(__dirname, '../fonts/Inter-Regular.ttf'); 
-  const fontBold = path.join(__dirname, '../fonts/Inter-Bold.ttf');
-  const fontMedium = path.join(__dirname, '../fonts/Inter-Medium.ttf');
-
-  if (!GlobalFonts.has('Inter')) {
-    GlobalFonts.registerFromPath(fontBold, 'Inter-Bold');
-    GlobalFonts.registerFromPath(fontRegular, 'Inter-Regular');
-    GlobalFonts.registerFromPath(fontMedium, 'Inter-Medium');
-  }
-} catch (e) {
-  console.log("Aviso: Fontes não carregadas, usando padrão do sistema.");
+// Usando o snippet exato que você forneceu
+const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+if (!GlobalFonts.has('Inter')) {
+  GlobalFonts.registerFromPath(fontPath, 'Inter');
 }
 
 // --- 2. FUNÇÕES AUXILIARES DE DESENHO ---
 
-// Desenha um retângulo arredondado (Rounded Rect)
+// Desenha um retângulo arredondado
 function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
@@ -41,7 +31,8 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
 
 // Desenha o efeito de "Tag" (Pílula de vidro)
 function drawGlassPill(ctx, text, x, y) {
-  ctx.font = '18px Inter-Medium';
+  // Ajustado para usar apenas 'Inter' (a única registrada)
+  ctx.font = '18px Inter'; 
   const padding = 20;
   const textWidth = ctx.measureText(text).width;
   const pillWidth = textWidth + (padding * 2);
@@ -49,22 +40,75 @@ function drawGlassPill(ctx, text, x, y) {
   const radius = 18;
 
   ctx.save();
-  // Fundo da pílula
   ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
   drawRoundedRect(ctx, x, y, pillWidth, pillHeight, radius);
   ctx.fill();
 
-  // Borda sutil
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
   ctx.lineWidth = 1;
   ctx.stroke();
 
-  // Texto
   ctx.fillStyle = '#FFFFFF';
-  ctx.fillText(text, x + padding, y + 24);
+  // Pequeno ajuste no Y para centralizar verticalmente na fonte Bold
+  ctx.fillText(text, x + padding, y + 25); 
   ctx.restore();
 
-  return pillWidth + 10; // Retorna largura para posicionar o próximo
+  return pillWidth + 10;
+}
+
+// Função para desenhar ícones manualmente (Geometria) ao invés de usar fonte/emoji
+function drawIconGeometry(ctx, type, cx, cy) {
+  ctx.save();
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (type === 'mail') {
+    const w = 34;
+    const h = 24;
+    const x = cx - w/2;
+    const y = cy - h/2;
+    
+    // Envelope box
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    ctx.stroke();
+    
+    // Aba do envelope
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.lineTo(cx, y + 12);
+    ctx.lineTo(x + w, y);
+    ctx.stroke();
+  } 
+  else if (type === 'bell') {
+    // Corpo do sino
+    ctx.beginPath();
+    // Topo arcado
+    ctx.arc(cx, cy - 2, 8, Math.PI, 0); 
+    // Laterais descendo
+    ctx.lineTo(cx + 10, cy + 8); 
+    // Base alargada
+    ctx.quadraticCurveTo(cx + 12, cy + 10, cx + 14, cy + 10);
+    ctx.lineTo(cx - 14, cy + 10);
+    ctx.quadraticCurveTo(cx - 12, cy + 10, cx - 10, cy + 8);
+    ctx.lineTo(cx - 8, cy - 2);
+    ctx.stroke();
+
+    // Pêndulo do sino (bolinha embaixo)
+    ctx.beginPath();
+    ctx.arc(cx, cy + 10, 3, 0, Math.PI); // Meio circulo para baixo
+    ctx.stroke();
+    
+    // Tracinho no topo
+    ctx.beginPath();
+    ctx.moveTo(cx, cy - 10);
+    ctx.lineTo(cx, cy - 13);
+    ctx.stroke();
+  }
+
+  ctx.restore();
 }
 
 // --- 3. HANDLER PRINCIPAL ---
@@ -72,81 +116,73 @@ export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   
   try {
-    // Dados de entrada
     const {
       name = "Pink Sky",
-      username = "User ID", // O ID será usado como uma das tags
-      bg = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg", // Exemplo padrão
+      username = "User ID",
       pp = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    // Dimensões do Canvas (Similar à imagem: quase quadrado)
+    // 1. DIMENSÕES AJUSTADAS (CROP)
+    // Reduzi H de 900 para 750 para cortar o topo vazio
     const W = 1000;
-    const H = 900;
+    const H = 750; 
+    
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // 1. CARREGAR IMAGENS
-    // Usamos a foto de perfil como background se não houver um bg específico, para combinar cores
     const imgBg = await loadImage(pp).catch(() => null); 
     const imgAvatar = await loadImage(pp).catch(() => null);
 
-    // 2. FUNDO (BACKGROUND) - Efeito Blur Intenso
+    // 2. FUNDO (BACKGROUND)
     if (imgBg) {
-      // Scale para garantir que cubra tudo sem bordas brancas no blur
       const scale = Math.max(W / imgBg.width, H / imgBg.height) * 1.2;
       const x = (W - (imgBg.width * scale)) / 2;
       const y = (H - (imgBg.height * scale)) / 2;
       
       ctx.save();
-      ctx.filter = 'blur(60px) brightness(0.8) saturate(1.2)'; // Blur pesado e ajuste de cor
+      ctx.filter = 'blur(60px) brightness(0.8) saturate(1.2)';
       ctx.drawImage(imgBg, x, y, imgBg.width * scale, imgBg.height * scale);
       ctx.restore();
     } else {
-      // Fallback
       ctx.fillStyle = '#2b1020';
       ctx.fillRect(0, 0, W, H);
     }
 
     // --- GEOMETRIA DO LAYOUT ---
     const CARD_MARGIN = 50;
-    const GLASS_H = 550; // Altura do vidro inferior
-    const GLASS_Y = H - GLASS_H - 50; // Começa a 550px do fundo
+    const GLASS_H = 550; 
+    
+    // O vidro começa ancorado no fundo, mas como reduzimos H, ele sobe automaticamente
+    // H (750) - GLASS_H (550) - 50 = Y (150). 
+    // Antes o Y era 300. Agora o conteúdo começa bem mais perto do topo (Crop effect).
+    const GLASS_Y = H - GLASS_H - 50; 
     const GLASS_W = W - (CARD_MARGIN * 2);
     const GLASS_RADIUS = 60;
 
     const AVATAR_SIZE = 220;
     const AVATAR_RADIUS = AVATAR_SIZE / 2;
-    // O Avatar fica "montado" na linha superior do vidro.
-    // Centro do avatar = (X: 180, Y: GLASS_Y)
     const AVATAR_CX = CARD_MARGIN + 120; 
-    const AVATAR_CY = GLASS_Y; // Exatamente na linha da borda
+    const AVATAR_CY = GLASS_Y; 
 
-    // 3. CARTÃO DE VIDRO (CONTAINER INFERIOR)
+    // 3. CARTÃO DE VIDRO
     ctx.save();
-    
-    // Sombra suave atrás do vidro para dar profundidade
     ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
     ctx.shadowBlur = 40;
     ctx.shadowOffsetY = 20;
 
-    // Desenhar forma do vidro
     drawRoundedRect(ctx, CARD_MARGIN, GLASS_Y, GLASS_W, GLASS_H, GLASS_RADIUS);
     
-    // Preenchimento Gradiente (Vidro)
     const grad = ctx.createLinearGradient(CARD_MARGIN, GLASS_Y, CARD_MARGIN, GLASS_Y + GLASS_H);
-    grad.addColorStop(0, 'rgba(255, 255, 255, 0.15)'); // Topo levemente branco
-    grad.addColorStop(1, 'rgba(255, 255, 255, 0.05)'); // Fundo mais transparente
+    grad.addColorStop(0, 'rgba(255, 255, 255, 0.15)');
+    grad.addColorStop(1, 'rgba(255, 255, 255, 0.05)');
     ctx.fillStyle = grad;
     ctx.fill();
-    ctx.shadowColor = 'transparent'; // Reset sombra para não afetar o resto
+    ctx.shadowColor = 'transparent';
 
-    // Borda do vidro (Stroke brilhante)
     ctx.lineWidth = 2;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
     ctx.stroke();
     
-    // Linha de brilho extra no topo (opcional, para realismo)
     ctx.save();
     ctx.beginPath();
     ctx.moveTo(CARD_MARGIN + GLASS_RADIUS, GLASS_Y);
@@ -156,9 +192,9 @@ export default async function handler(req, res) {
     ctx.stroke();
     ctx.restore();
 
-    ctx.restore(); // Fim do contexto do vidro
+    ctx.restore();
 
-    // 4. AVATAR (CÍRCULO)
+    // 4. AVATAR
     ctx.save();
     ctx.beginPath();
     ctx.arc(AVATAR_CX, AVATAR_CY, AVATAR_RADIUS, 0, Math.PI * 2);
@@ -171,7 +207,6 @@ export default async function handler(req, res) {
     }
     ctx.restore();
 
-    // Borda sutil ao redor do avatar (para separar do fundo)
     ctx.beginPath();
     ctx.arc(AVATAR_CX, AVATAR_CY, AVATAR_RADIUS, 0, Math.PI * 2);
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
@@ -179,32 +214,26 @@ export default async function handler(req, res) {
     ctx.stroke();
 
     // 5. TEXTOS
-    const TEXT_START_X = CARD_MARGIN + 60; // Margem interna esquerda
-    const CONTENT_START_Y = AVATAR_CY + AVATAR_RADIUS + 40; // Começa abaixo do avatar
+    const TEXT_START_X = CARD_MARGIN + 60; 
+    const CONTENT_START_Y = AVATAR_CY + AVATAR_RADIUS + 40; 
 
-    // Nome (Grande)
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '64px Inter-Bold'; // Fonte grande
+    // Alterado para usar apenas 'Inter'
+    ctx.font = '64px Inter'; 
     ctx.textBaseline = 'top';
     ctx.fillText(name, TEXT_START_X, CONTENT_START_Y);
 
-    // Tags / ID (Pílulas)
     let tagX = TEXT_START_X;
     const tagY = CONTENT_START_Y + 85;
     
-    // Tag 1: Cargo ou Estático (ex: "Member")
     tagX += drawGlassPill(ctx, 'User', tagX, tagY);
-    
-    // Tag 2: O ID/Username do usuário
     drawGlassPill(ctx, username, tagX, tagY);
 
-    // Bio Falsa (Para manter o visual estético da imagem, já que o usuário não envia bio)
-    // Se quiser remover, apenas delete este bloco.
     ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
-    ctx.font = '28px Inter-Regular';
+    // Alterado para 'Inter' (será Bold pois é a única fonte carregada)
+    ctx.font = '28px Inter'; 
     const bioText = "Welcome to my profile card. This is an automated visualization of my account status and ID.";
     
-    // Quebra de linha simples para bio
     const words = bioText.split(' ');
     let line = '';
     let lineY = tagY + 70;
@@ -224,16 +253,14 @@ export default async function handler(req, res) {
     }
     ctx.fillText(line, TEXT_START_X, lineY);
 
-
     // 6. UI INFERIOR (BOTÕES)
-    const BUTTON_Y = GLASS_Y + GLASS_H - 130; // Perto do fundo do vidro
+    const BUTTON_Y = GLASS_Y + GLASS_H - 130; 
     const BTN_HEIGHT = 80;
 
     // Botão Grande "+ Follow"
     const btnFollowWidth = 350;
     ctx.save();
     
-    // Fundo do botão (gradiente escuro/marrom como na imagem ou semitransparente)
     const btnGrad = ctx.createLinearGradient(TEXT_START_X, BUTTON_Y, TEXT_START_X, BUTTON_Y + BTN_HEIGHT);
     btnGrad.addColorStop(0, 'rgba(0, 0, 0, 0.4)');
     btnGrad.addColorStop(1, 'rgba(0, 0, 0, 0.6)');
@@ -242,47 +269,43 @@ export default async function handler(req, res) {
     drawRoundedRect(ctx, TEXT_START_X, BUTTON_Y, btnFollowWidth, BTN_HEIGHT, 40);
     ctx.fill();
     
-    // Borda fina botão
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
     ctx.stroke();
 
-    // Texto "+ Follow"
     ctx.fillStyle = '#FFF';
-    ctx.font = '32px Inter-Medium';
+    // Alterado para 'Inter'
+    ctx.font = '32px Inter'; 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('+  Follow', TEXT_START_X + (btnFollowWidth/2), BUTTON_Y + (BTN_HEIGHT/2));
     ctx.restore();
 
-    // Botões Circulares (Mail e Bell)
-    // Vamos desenhar apenas os círculos com ícones simples (desenho geométrico) para não depender de assets
+    // Botões Circulares (Ícones desenhados manualmente)
     const iconSize = 80;
     const iconGap = 20;
     let iconX = TEXT_START_X + btnFollowWidth + 30;
 
-    function drawCircleBtn(x, symbol) {
-      // Círculo Fundo
+    function drawCircleBtn(x, iconType) {
+      // Fundo do círculo
+      ctx.save();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
       ctx.beginPath();
-      ctx.arc(x + iconSize/2, BUTTON_Y + iconSize/2, iconSize/2, 0, Math.PI*2);
+      const cx = x + iconSize/2;
+      const cy = BUTTON_Y + iconSize/2;
+      
+      ctx.arc(cx, cy, iconSize/2, 0, Math.PI*2);
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.stroke();
 
-      // Ícone (Texto simples)
-      ctx.fillStyle = '#FFF';
-      ctx.font = '36px Inter-Regular'; // Usando emoji como fallback visual rápido
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(symbol, x + iconSize/2, BUTTON_Y + iconSize/2 + 2);
+      // Chama a função de desenho geométrico em vez de fillText
+      drawIconGeometry(ctx, iconType, cx, cy);
+      ctx.restore();
     }
 
-    // Desenhar ícone de Email e Sino usando caracteres unicode ou formas
-    // Nota: Em canvas node, emojis podem variar. Se preferir formas:
-    // Email
-    drawCircleBtn(iconX, '✉'); 
-    // Sino
-    drawCircleBtn(iconX + iconSize + iconGap, '🔔');
+    // Desenha Mail e Sino
+    drawCircleBtn(iconX, 'mail'); 
+    drawCircleBtn(iconX + iconSize + iconGap, 'bell');
 
     // 7. OUTPUT
     const buffer = await canvas.encode('png');
