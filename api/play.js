@@ -256,15 +256,12 @@ export default async function handler(req, res) {
     const shareX = likeX - headerH - 10;
     const topIconSize = 52; 
 
-    // Botão Share
     drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
     drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
 
-    // Botão Like
     drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
     drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
-    // --- PROGRESS BAR ---
     const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
     ctx.font = `500 ${TIME_SIZE}px Inter, sans-serif`;
     ctx.fillStyle = '#FFFFFF';
@@ -281,22 +278,18 @@ export default async function handler(req, res) {
     ctx.beginPath();
     ctx.roundRect(PADDING, pY, pW * ratio, 12, 6);
     ctx.fill();
-
-    // --- CONTROLES INFERIORES ---
+    
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
-    // Aplicando drawGlassCircle (efeito de vidro) igual aos botões superiores
     drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
     drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
     drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
 
-    // Ícones sobrepostos aos botões de vidro
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
     drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
 
-    // --- FIM DA ÁREA DO "ADESIVO" ---
     ctx.restore(); 
 
     const buffer = await canvas.encode('png');
