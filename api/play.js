@@ -13,9 +13,8 @@ try {
 } catch (e) { }
 
 // --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
-// (Nenhuma alteração nas funções de desenho)
 
-// FUNÇÃO CORAÇÃO REFEITA (Formato Emoji ❤️)
+// FUNÇÃO CORAÇÃO (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -29,7 +28,7 @@ function drawHeart(ctx, x, y, size) {
   ctx.restore();
 }
 
-// FUNÇÃO COMPARTILHAR REFEITA
+// FUNÇÃO COMPARTILHAR
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -68,6 +67,7 @@ function drawShareIcon(ctx, x, y, size) {
 }
 
 // Função genérica para efeito de vidro em Círculos
+// Usada tanto nos botões superiores quanto nos inferiores
 function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -146,22 +146,18 @@ export default async function handler(req, res) {
 
   try {
     // --- CONSTANTES DE AJUSTE "ADESIVO" ---
-    const DESIGN_RES = 1080; // A resolução interna do design (não mudar)
-    const FINAL_CANVAS_SIZE = 1080; // O tamanho total do PNG gerado (fundo transparente)
-    
-    // *** AJUSTE AQUI ***: O tamanho do conteúdo em relação ao fundo (0.1 a 1.0)
-    // 0.85 significa que o cartão ocupará 85% do tamanho total da imagem.
-    const STICKER_SCALE = 0.94; 
+    const DESIGN_RES = 1080; 
+    const FINAL_CANVAS_SIZE = 1080; 
+    const STICKER_SCALE = 0.85; 
 
     // --- CÁLCULOS DE POSICIONAMENTO ---
     const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
     const margin = (FINAL_CANVAS_SIZE - stickerActualSize) / 2;
-    // Fator de escala para converter o design de 1080p para o tamanho real do adesivo
     const scaleFactor = stickerActualSize / DESIGN_RES;
 
-    // --- MEDIDAS DE UI (Usam a resolução interna de design) ---
+    // --- MEDIDAS DE UI ---
     const W = DESIGN_RES, H = DESIGN_RES;
-    const PADDING = 90, CARD_RADIUS = 140;
+    const PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
     const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
     const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
@@ -175,17 +171,13 @@ export default async function handler(req, res) {
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
-    // Cria o canvas com o tamanho total final (fundo transparente)
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
     // --- INÍCIO DA ÁREA DO "ADESIVO" ---
-    // Salva o estado limpo, move para o centro e aplica a escala
     ctx.save();
     ctx.translate(margin, margin);
     ctx.scale(scaleFactor, scaleFactor);
-
-    // (A partir daqui, todo o desenho usa as coordenadas internas W/H de 1080p)
 
     let img = null;
     try {
@@ -196,7 +188,7 @@ export default async function handler(req, res) {
         }
     } catch (e) { }
 
-    // BG Clipping (Recorta apenas a área do cartão)
+    // BG Clipping
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
@@ -278,16 +270,17 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
+    // Aplicando drawGlassCircle (efeito de vidro) igual aos botões superiores
     drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
     drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
     drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
 
+    // Ícones sobrepostos aos botões de vidro
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
     drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
 
     // --- FIM DA ÁREA DO "ADESIVO" ---
-    // Restaura o contexto para que nada mais seja afetado pela escala/translação
     ctx.restore(); 
 
     const buffer = await canvas.encode('png');
