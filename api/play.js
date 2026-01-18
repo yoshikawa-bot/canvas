@@ -14,50 +14,68 @@ try {
 
 // --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
 
+// FUNÇÃO CORAÇÃO REFEITA (Maior e centralizada)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  const s = size * 0.8; // Escala interna
-  const topCurveHeight = s * 0.3;
-  ctx.moveTo(0, topCurveHeight);
-  ctx.bezierCurveTo(0, 0, -s / 2, 0, -s / 2, topCurveHeight);
-  ctx.bezierCurveTo(-s / 2, s / 2, 0, s * 0.8, 0, s);
-  ctx.bezierCurveTo(0, s * 0.8, s / 2, s / 2, s / 2, topCurveHeight);
-  ctx.bezierCurveTo(s / 2, 0, 0, 0, 0, topCurveHeight);
+  // Escala aumentada para 1.0 (era 0.8) para ficar maior
+  const s = size * 1.0;
+  
+  // Desenho do coração centralizado no ponto (0,0)
+  // Inicia na ponta inferior
+  ctx.moveTo(0, s * 0.5); 
+  // Curva esquerda para o topo esquerdo
+  ctx.bezierCurveTo(-s * 0.65, 0, -s * 0.3, -s * 0.55, 0, -s * 0.2);
+  // Curva direita do topo direito para a ponta inferior
+  ctx.bezierCurveTo(s * 0.3, -s * 0.55, s * 0.65, 0, 0, s * 0.5);
+  
   ctx.fill();
   ctx.restore();
 }
 
+// FUNÇÃO COMPARTILHAR REFEITA (Caixa maior, seta mais pra cima)
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
   ctx.strokeStyle = '#FFFFFF';
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 4.5; // Linha ligeiramente mais grossa para o tamanho maior
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   
-  const s = size * 0.7;
-  // Base quadrada aberta
+  // Escala base aumentada
+  const s = size * 0.85;
+
+  // Parâmetros da Caixa (Mais larga e mais alta)
+  const boxSideH = s * 0.55; // Largura horizontal
+  const boxTopY = -s * 0.1;  // Topo da caixa
+  const boxBottomY = s * 0.6; // Fundo da caixa
+
+  // Desenha a caixa aberta
   ctx.beginPath();
-  ctx.moveTo(-s/2, -s/4);
-  ctx.lineTo(-s/2, s/2);
-  ctx.lineTo(s/2, s/2);
-  ctx.lineTo(s/2, -s/4);
+  ctx.moveTo(-boxSideH, boxTopY);
+  ctx.lineTo(-boxSideH, boxBottomY);
+  ctx.lineTo(boxSideH, boxBottomY);
+  ctx.lineTo(boxSideH, boxTopY);
   ctx.stroke();
 
-  // Seta central
+  // Parâmetros da Seta (Movida para cima)
+  const arrowTipY = -s * 0.75; // Ponta bem mais alta
+  const arrowBaseY = s * 0.1;  // Base da haste mais alta
+  const arrowHeadW = s * 0.35; // Largura da cabeça da seta
+
+  // Haste central da seta
   ctx.beginPath();
-  ctx.moveTo(0, s/2);
-  ctx.lineTo(0, -s/2);
+  ctx.moveTo(0, arrowBaseY);
+  ctx.lineTo(0, arrowTipY);
   ctx.stroke();
 
   // Cabeça da seta
   ctx.beginPath();
-  ctx.moveTo(-s/3, -s/5);
-  ctx.lineTo(0, -s/2);
-  ctx.lineTo(s/3, -s/5);
+  ctx.moveTo(-arrowHeadW, arrowTipY + s * 0.25);
+  ctx.lineTo(0, arrowTipY);
+  ctx.lineTo(arrowHeadW, arrowTipY + s * 0.25);
   ctx.stroke();
   ctx.restore();
 }
@@ -73,15 +91,15 @@ function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
     ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
   }
   ctx.filter = 'none';
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)'; // Overlay escuro suave
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
   ctx.fill();
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; // Borda sutil
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
   ctx.lineWidth = 1;
   ctx.stroke();
   ctx.restore();
 }
 
-// Nova função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
+// Função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
 function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -143,10 +161,7 @@ export default async function handler(req, res) {
     // --- MEDIDAS DE UI ---
     const W = 1080, H = 1080, PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
-    
-    // ALTERADO: PLAY_BTN_RADIUS agora é 80 (igual ao SIDE_BTN_RADIUS)
     const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
-    
     const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
     const PROGRESS_Y_BOTTOM = 360, TIME_SIZE = 48;
     const BG_ZOOM = 1.9;
@@ -195,10 +210,9 @@ export default async function handler(req, res) {
     // --- HEADER ---
     const headerH = 150;
     const pillX = PADDING, pillY = PADDING;
-    // Ajuste fino na largura da pílula para dar espaço aos botões
     const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    // ALTERADO: Aplica efeito de vidro na Pílula usando a função helper
+    // Pílula com efeito de vidro
     drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
     
     // Avatar circular
@@ -219,19 +233,18 @@ export default async function handler(req, res) {
     ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
 
     // --- BOTÕES DE TOPO (Heart e Share) ---
-    // Recalculo das posições para garantir alinhamento
-    const likeX = W - PADDING - headerH/2; // Centro do botão Like
-    const shareX = likeX - headerH - 10;   // Centro do botão Share (com um pequeno gap)
-    
-    // ALTERADO: Efeito vidro + Ícone explicitamente desenhado por cima
-    
+    const likeX = W - PADDING - headerH/2;
+    const shareX = likeX - headerH - 10;
+    const topIconSize = 52; // Tamanho base ligeiramente aumentado para os novos ícones
+
     // Botão Share
     drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
-    drawShareIcon(ctx, shareX, pillY + headerH/2, 50); // Tamanho ajustado
+    drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
 
     // Botão Like
     drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
-    drawHeart(ctx, likeX, pillY + headerH/2 - 2, 50); // Ajuste fino no Y do ícone
+    // Removido o offset Y (-2) pois a nova função já centraliza corretamente
+    drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
     // --- PROGRESS BAR ---
     const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
@@ -255,12 +268,10 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
-    // Fundo dos botões de controle (todos com vidro)
     drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect); // Agora usa PLAY_BTN_RADIUS reduzido (80)
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
     drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
 
-    // Ícones dos controles
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
     drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
