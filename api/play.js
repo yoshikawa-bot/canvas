@@ -227,10 +227,26 @@ export default async function handler(req, res) {
     if(img) ctx.drawImage(img, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
     ctx.restore();
 
+    // -- ATUALIZADO: Lógica de texto com "..." --
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 42px Inter, sans-serif';
-    ctx.fillText(channel, pillX + avSize + 50, pillY + headerH/2 - 5);
+
+    const textStartX = pillX + avSize + 50;
+    // Calcula a largura máxima permitida para o texto (Largura da pílula - espaço do avatar - margem direita)
+    const maxTextWidth = pillWidth - (avSize + 50) - 20; 
+    let displayChannel = channel;
+
+    // Se o texto for maior que o espaço, trunca e adiciona "..."
+    if (ctx.measureText(displayChannel).width > maxTextWidth) {
+      while (ctx.measureText(displayChannel + '...').width > maxTextWidth && displayChannel.length > 0) {
+        displayChannel = displayChannel.slice(0, -1);
+      }
+      displayChannel += '...';
+    }
+
+    ctx.fillText(displayChannel, textStartX, pillY + headerH/2 - 5);
+    
     ctx.fillStyle = '#ccc';
     ctx.font = '400 32px Inter, sans-serif';
     ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
