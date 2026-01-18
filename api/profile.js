@@ -7,53 +7,50 @@ const __dirname = path.dirname(__filename);
 
 // --- 1. CARREGAMENTO DE FONTES ---
 try {
-  // Certifique-se de ter a fonte Inter (ou San Francisco) disponível
-  const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
-  const fontRegularPath = path.join(__dirname, '../fonts/Inter_18pt-Regular.ttf'); 
+  // Use caminhos absolutos para garantir que funcione em qualquer ambiente
+  const fontBoldPath = path.resolve(__dirname, '../fonts/Inter-Bold.ttf');
+  const fontRegularPath = path.resolve(__dirname, '../fonts/Inter-Regular.ttf'); 
   
+  // Verifica e registra as fontes necessárias
   if (!GlobalFonts.has('Inter-Bold')) {
-    GlobalFonts.registerFromPath(fontPath, 'Inter-Bold');
+      GlobalFonts.registerFromPath(fontBoldPath, 'Inter-Bold');
   }
-  // Se tiver a regular, carregue também, se não, usa a Bold para tudo com peso diferente
   if (!GlobalFonts.has('Inter-Regular')) {
-      try { GlobalFonts.registerFromPath(fontRegularPath, 'Inter-Regular'); } catch(e){}
+      try { GlobalFonts.registerFromPath(fontRegularPath, 'Inter-Regular'); } catch(e) { console.log('Inter-Regular não encontrada, usando fallback'); }
   }
 } catch (e) { 
-  console.log("Erro ao carregar fonte:", e);
+  console.error("Erro crítico no carregamento de fontes:", e);
+  // O código continuará, mas usará a fonte padrão do sistema, o que pode alterar o visual.
 }
 
 // --- 2. FUNÇÕES AUXILIARES ---
 
-// Função para desenhar texto com quebra de linha e reticências (...)
+// Função para desenhar texto com quebra de linha automática
 function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
     const words = text.split(' ');
     let line = '';
     let testLine = '';
     let lineCount = 0;
-    const maxLines = 2; // Máximo de linhas permitidas antes do ...
+    const maxLines = 2; // Permite até 2 linhas para o nome
 
-    ctx.textAlign = 'center';
+    ctx.textAlign = 'left'; // Alinhamento à esquerda para este layout
     
-    // Primeiro, verifica se o texto inteiro cabe em uma linha
+    // Verifica se cabe tudo em uma linha
     if (ctx.measureText(text).width <= maxWidth) {
          ctx.fillText(text, x, y);
-         return y + lineHeight;
+         return y + lineHeight; // Retorna a próxima posição Y disponível
     }
 
-    // Se não couber, faz o processo de quebra
     let currentY = y;
-    
     for (let n = 0; n < words.length; n++) {
         testLine = line + words[n] + ' ';
         const metrics = ctx.measureText(testLine);
         const testWidth = metrics.width;
 
         if (testWidth > maxWidth && n > 0) {
-            // Se atingiu o limite de linhas, desenha com ... e para
             if (lineCount >= maxLines - 1) {
+                // Se exceder o limite de linhas, adiciona reticências e para
                 line = line.trim();
-                // Remove ultimos caracteres para caber o "..." se necessario, 
-                // mas aqui simplificamos desenhando a linha atual + ...
                 ctx.fillText(line + "...", x, currentY);
                 return currentY + lineHeight;
             }
@@ -66,22 +63,33 @@ function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
             line = testLine;
         }
     }
-    // Desenha a última linha (se não tiver estourado o limite acima)
     ctx.fillText(line, x, currentY);
-    return currentY + lineHeight; // Retorna a posição Y final
+    return currentY + lineHeight;
 }
 
-// Desenha o Chevron (Seta >)
-function drawChevron(ctx, x, y, size, color) {
+// Função para desenhar um ícone de nuvem simples
+function drawCloudIcon(ctx, x, y, width, color) {
+    ctx.save();
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.moveTo(x, y - size);
-    ctx.lineTo(x + size/1.5, y);
-    ctx.lineTo(x, y + size);
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 4;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.stroke();
+
+    const height = width * 0.6;
+    const centerX = x + width / 2;
+    const centerY = y + height / 2;
+
+    // Desenhando a nuvem usando múltiplos arcos sobrepostos
+    // Círculo esquerdo
+    ctx.arc(centerX - width * 0.25, centerY + height * 0.1, height * 0.35, Math.PI * 0.5, Math.PI * 1.5);
+    // Círculo superior esquerdo
+    ctx.arc(centerX - width * 0.1, centerY - height * 0.15, height * 0.4, Math.PI * 1, Math.PI * 1.85);
+    // Círculo superior direito (o maior)
+    ctx.arc(centerX + width * 0.2, centerY - height * 0.05, height * 0.45, Math.PI * 1.3, Math.PI * 0.1);
+    // Círculo direito
+    ctx.arc(centerX + width * 0.35, centerY + height * 0.2, height * 0.25, Math.PI * 1.7, Math.PI * 0.5);
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
 }
 
 // --- 3. HANDLER PRINCIPAL ---
@@ -91,131 +99,129 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // --- CONFIGURAÇÃO ---
-    const W = 800;
-    const H = 1000; // Layout Vertical
+    // --- CONFIGURAÇÃO DE LAYOUT HORIZONTAL ---
+    const W = 1100;
+    const H = 500; 
     
+    // Dados de entrada
     const {
-      name = "Dawn Ramirez (Eu)", // Nome longo para testar
-      username = "dawn_ramirez@icloud.com", // Email/ID
-      pp = "https://i.imgur.com/Te0cnz2.png" 
+      name = "Dawn Ramirez (Eu) Nome Longo Teste",
+      username = "yoshikawa_lid_123", // O "lid" do usuário
+      pp = "https://i.imgur.com/Te0cnz2.png"
     } = req.method === "POST" ? req.body : req.query;
 
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // --- FUNDO GERAL (Branco / Light Mode) ---
+    // 1. Fundo Clean (Branco)
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, W, H);
 
-    // Carregar Imagem do Avatar
+    // --- CARREGAR IMAGEM ---
     let img = null;
     try {
         const response = await fetch(pp);
         const arrayBuffer = await response.arrayBuffer();
         img = await loadImage(Buffer.from(arrayBuffer));
     } catch (e) {
-        console.log("Erro imagem fallback");
+        console.log("Usando fallback de imagem devido a erro no fetch");
     }
 
-    const centerX = W / 2;
+    const contentMarginX = 80; // Margem esquerda geral
+    const centerY = H / 2;
     
-    // --- 1. AVATAR (Centralizado no topo) ---
-    const avatarSize = 250;
-    const avatarY = 180; // Centro vertical do avatar
+    // --- 2. AVATAR (Esquerda) ---
+    const avatarSize = 240;
+    const avatarX = contentMarginX + avatarSize / 2;
     
     ctx.save();
     ctx.beginPath();
-    ctx.arc(centerX, avatarY, avatarSize / 2, 0, Math.PI * 2);
+    // Círculo perfeito
+    ctx.arc(avatarX, centerY, avatarSize / 2, 0, Math.PI * 2);
     ctx.clip();
     
     if (img) {
-        // Desenha imagem preenchendo o circulo
-        ctx.drawImage(img, centerX - avatarSize/2, avatarY - avatarSize/2, avatarSize, avatarSize);
+        ctx.drawImage(img, avatarX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
     } else {
-        ctx.fillStyle = '#CCCCCC';
-        ctx.fillRect(centerX - avatarSize/2, avatarY - avatarSize/2, avatarSize, avatarSize);
+        ctx.fillStyle = '#E5E5EA'; // Placeholder cinza
+        ctx.fillRect(avatarX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
     }
     ctx.restore();
 
-    // --- 2. TEXTOS CENTRAIS ---
+    // --- 3. ÁREA DE TEXTO (Direita do Avatar) ---
     
-    // NOME (Bold, Preto)
+    const textStartX = avatarX + avatarSize / 2 + 50; // Início do texto
+    const textMaxWidth = W - textStartX - contentMarginX; // Espaço disponível para texto
+
+    let cursorY = centerY - 60; // Posição Y inicial para começar a desenhar os textos
+
+    // NOME (Grande, Bold)
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 75px Inter-Bold, sans-serif'; // Fonte grande
+    // Tenta usar a Bold, fallback para sans-serif padrão
+    ctx.font = GlobalFonts.has('Inter-Bold') ? 'bold 70px Inter-Bold' : 'bold 70px sans-serif';
     
-    const nameY = avatarY + avatarSize/2 + 80; // Posição abaixo do avatar
-    const maxTextWidth = W - 100; // Margem de 50px de cada lado
+    // Usa a função de quebra de linha e atualiza a posição Y do cursor
+    cursorY = drawWrappedText(ctx, name, textStartX, cursorY, textMaxWidth, 80);
+
+    // SUBTÍTULO (Ex: "Adulto")
+    ctx.fillStyle = '#8E8E93'; // Cinza estilo iOS
+    ctx.font = GlobalFonts.has('Inter-Regular') ? '500 36px Inter-Regular' : '500 36px sans-serif';
+    cursorY -= 10; // Pequeno ajuste fino no espaçamento
+    ctx.fillText("Adulto", textStartX, cursorY);
     
-    // Chama a função de quebra de linha
-    drawWrappedText(ctx, name, centerX, nameY, maxTextWidth, 85);
+    // --- 4. BOTÃO "ID YOSHIKAWA" (Abaixo do texto) ---
 
-    // SUBTITULO (Ex: "Adulto" ou Cargo - Fixo ou via variavel)
-    ctx.fillStyle = '#8E8E93'; // Cinza Apple
-    ctx.font = '500 40px Inter-Regular, sans-serif';
-    // Colocamos um pouco abaixo do nome (estimativa, se o nome tiver 2 linhas isso pode sobrepor, 
-    // num cenário ideal calculariamos a altura retornada do drawWrappedText)
-    ctx.fillText("Adulto", centerX, nameY + 110); 
+    cursorY += 50; // Espaço entre o subtítulo e o botão
 
+    const boxHeight = 130;
+    // Largura dinâmica: ocupa o espaço restante ou um tamanho fixo, o que for menor.
+    const boxWidth = Math.min(textMaxWidth + 20, 600); 
+    const boxRadius = 25;
 
-    // --- 3. RODAPÉ (Caixa "ID Apple") ---
-    
-    const boxHeight = 160;
-    const boxWidth = W - 80; // Margem lateral de 40px
-    const boxX = 40;
-    const boxY = H - boxHeight - 60; // 60px de margem inferior
-    const boxRadius = 30;
-
-    // Fundo da caixa (Cinza Claro)
+    // Fundo do Botão (Cinza Claro Arredondado)
     ctx.fillStyle = '#F2F2F7'; 
     ctx.beginPath();
-    ctx.roundRect(boxX, boxY, boxWidth, boxHeight, boxRadius);
+    ctx.roundRect(textStartX - 20, cursorY, boxWidth, boxHeight, boxRadius);
     ctx.fill();
 
-    // Ícone (Quadrado Cinza Escuro simulando logo Apple)
-    const iconSize = 90;
-    const iconX = boxX + 35;
-    const iconY = boxY + (boxHeight - iconSize) / 2;
+    // ÍCONE DE NUVEM (Azul)
+    const iconSize = 70;
+    const iconMarginLeft = 30;
+    // Centraliza o ícone verticalmente dentro da caixa
+    const iconYPos = cursorY + (boxHeight - iconSize * 0.6) / 2 - 5; 
     
-    ctx.fillStyle = '#8E8E93'; // Cinza do ícone
-    // Se tiver o PNG da maçã, use drawImage aqui. Vou desenhar um rect arredondado placeholder.
-    ctx.beginPath();
-    ctx.roundRect(iconX, iconY, iconSize, iconSize, 20);
-    ctx.fill();
-    
-    // Simulação visual do logo da Apple (Opcional, apenas um circulo branco dentro)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.beginPath();
-    ctx.arc(iconX + iconSize/2, iconY + iconSize/2, 20, 0, Math.PI*2); 
-    ctx.fill();
+    drawCloudIcon(ctx, textStartX + iconMarginLeft - 20, iconYPos, iconSize, '#007AFF'); // Azul iOS
 
-    // Texto do Rodapé
+    // TEXTOS DENTRO DO BOTÃO
     ctx.textAlign = 'left';
-    
-    // Título "ID Apple"
+    const buttonTextX = textStartX + iconMarginLeft + iconSize + 10;
+    const buttonTextCenterY = cursorY + boxHeight / 2;
+
+    // Título: ID Yoshikawa
     ctx.fillStyle = '#000000';
-    ctx.font = 'bold 40px Inter-Bold, sans-serif';
-    ctx.fillText("ID Apple", iconX + iconSize + 30, iconY + 45);
+    ctx.font = GlobalFonts.has('Inter-Bold') ? 'bold 38px Inter-Bold' : 'bold 38px sans-serif';
+    ctx.fillText("ID Yoshikawa", buttonTextX, buttonTextCenterY - 10);
 
-    // Email / User
-    ctx.fillStyle = '#8E8E93'; // Cinza texto secundário
-    ctx.font = '400 32px Inter-Regular, sans-serif';
-    // Corta o email se for muito longo para não sair da caixa
-    let displayEmail = username;
-    if (displayEmail.length > 28) displayEmail = displayEmail.substring(0, 28) + "...";
+    // Subtítulo: lid (username)
+    ctx.fillStyle = '#8E8E93'; // Cinza secundário
+    ctx.font = GlobalFonts.has('Inter-Regular') ? '400 30px Inter-Regular' : '400 30px sans-serif';
     
-    ctx.fillText(displayEmail, iconX + iconSize + 30, iconY + 85);
-
-    // Seta (Chevron) na direita
-    drawChevron(ctx, boxX + boxWidth - 50, boxY + boxHeight/2, 12, '#C7C7CC');
+    // Corta o LID se for muito longo
+    let displayLid = username;
+    const maxLidChars = 25;
+    if (displayLid.length > maxLidChars) displayLid = displayLid.substring(0, maxLidChars) + "...";
+    
+    ctx.fillText(displayLid, buttonTextX, buttonTextCenterY + 28);
 
     // --- FINALIZAR ---
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
+    // Cache opcional para melhor performance em produção
+    // res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=31536000');
     res.send(buffer);
 
   } catch (e) {
-    console.error(e);
-    res.status(500).send("Erro na geração do banner");
+    console.error("Erro ao gerar imagem:", e);
+    res.status(500).send("Erro interno na geração da imagem.");
   }
 }
