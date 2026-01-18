@@ -174,7 +174,11 @@ export default async function handler(req, res) {
 
   try {
     // --- MEDIDAS DE UI ---
-    const W = 1080, H = 1080, PADDING = 90, CARD_RADIUS = 120;
+    // Mantemos a lógica baseada em 1080p, mas reduzimos a saída
+    const W = 1080, H = 1080;
+    const OUTPUT_SCALE = 0.8; // <--- AJUSTE AQUI: 0.8 = 864x864px (menor que original)
+
+    const PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
     const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
     const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
@@ -183,13 +187,17 @@ export default async function handler(req, res) {
 
     const {
       channel = "Terence Howard",
-      handle = "@yoshikawa",
+      handle = "@terenceh",
       thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
-    const canvas = createCanvas(W, H);
+    // Cria o canvas com o tamanho físico reduzido
+    const canvas = createCanvas(W * OUTPUT_SCALE, H * OUTPUT_SCALE);
     const ctx = canvas.getContext('2d');
+
+    // Aplica a escala global para converter a lógica de 1080p para o tamanho reduzido
+    ctx.scale(OUTPUT_SCALE, OUTPUT_SCALE);
 
     let img = null;
     try {
