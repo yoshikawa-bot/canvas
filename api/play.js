@@ -151,7 +151,7 @@ export default async function handler(req, res) {
     
     // *** AJUSTE AQUI ***: O tamanho do conteúdo em relação ao fundo (0.1 a 1.0)
     // 0.85 significa que o cartão ocupará 85% do tamanho total da imagem.
-    const STICKER_SCALE = 0.85; 
+    const STICKER_SCALE = 0.92; 
 
     // --- CÁLCULOS DE POSICIONAMENTO ---
     const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
@@ -161,7 +161,7 @@ export default async function handler(req, res) {
 
     // --- MEDIDAS DE UI (Usam a resolução interna de design) ---
     const W = DESIGN_RES, H = DESIGN_RES;
-    const PADDING = 90, CARD_RADIUS = 120;
+    const PADDING = 90, CARD_RADIUS = 140;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
     const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
     const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
