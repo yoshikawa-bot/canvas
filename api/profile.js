@@ -5,117 +5,117 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// --- 1. CARREGAMENTO DE FONTES ---
+// --- 1. CARREGAMENTO DE FONTES (Igual ao código de Música que funciona) ---
 try {
-  // Use caminhos absolutos para garantir que funcione em qualquer ambiente
-  const fontBoldPath = path.resolve(__dirname, '../fonts/Inter-Bold.ttf');
-  const fontRegularPath = path.resolve(__dirname, '../fonts/Inter-Regular.ttf'); 
-  
-  // Verifica e registra as fontes necessárias
-  if (!GlobalFonts.has('Inter-Bold')) {
-      GlobalFonts.registerFromPath(fontBoldPath, 'Inter-Bold');
-  }
-  if (!GlobalFonts.has('Inter-Regular')) {
-      try { GlobalFonts.registerFromPath(fontRegularPath, 'Inter-Regular'); } catch(e) { console.log('Inter-Regular não encontrada, usando fallback'); }
+  // Ajuste o caminho conforme sua estrutura de pastas real
+  const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+  if (!GlobalFonts.has('Inter')) {
+    GlobalFonts.registerFromPath(fontPath, 'Inter');
   }
 } catch (e) { 
-  console.error("Erro crítico no carregamento de fontes:", e);
-  // O código continuará, mas usará a fonte padrão do sistema, o que pode alterar o visual.
+  console.log("Erro ao carregar fonte:", e);
 }
 
-// --- 2. FUNÇÕES AUXILIARES ---
+// --- 2. FUNÇÕES AUXILIARES DE DESENHO (Reutilizadas do Music Canvas) ---
 
-// Função para desenhar texto com quebra de linha automática
-function drawWrappedText(ctx, text, x, y, maxWidth, lineHeight) {
-    const words = text.split(' ');
-    let line = '';
-    let testLine = '';
-    let lineCount = 0;
-    const maxLines = 2; // Permite até 2 linhas para o nome
-
-    ctx.textAlign = 'left'; // Alinhamento à esquerda para este layout
-    
-    // Verifica se cabe tudo em uma linha
-    if (ctx.measureText(text).width <= maxWidth) {
-         ctx.fillText(text, x, y);
-         return y + lineHeight; // Retorna a próxima posição Y disponível
-    }
-
-    let currentY = y;
-    for (let n = 0; n < words.length; n++) {
-        testLine = line + words[n] + ' ';
-        const metrics = ctx.measureText(testLine);
-        const testWidth = metrics.width;
-
-        if (testWidth > maxWidth && n > 0) {
-            if (lineCount >= maxLines - 1) {
-                // Se exceder o limite de linhas, adiciona reticências e para
-                line = line.trim();
-                ctx.fillText(line + "...", x, currentY);
-                return currentY + lineHeight;
-            }
-            
-            ctx.fillText(line, x, currentY);
-            line = words[n] + ' ';
-            currentY += lineHeight;
-            lineCount++;
-        } else {
-            line = testLine;
-        }
-    }
-    ctx.fillText(line, x, currentY);
-    return currentY + lineHeight;
+// Efeito de Vidro em Retângulo (Pílula)
+function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.clip();
+  if (bgImg) {
+    ctx.filter = 'blur(20px)';
+    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+  }
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.45)'; // Um pouco mais escuro para leitura
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
 }
 
-// Função para desenhar um ícone de nuvem simples
-function drawCloudIcon(ctx, x, y, width, color) {
-    ctx.save();
-    ctx.fillStyle = color;
-    ctx.beginPath();
-
-    const height = width * 0.6;
-    const centerX = x + width / 2;
-    const centerY = y + height / 2;
-
-    // Desenhando a nuvem usando múltiplos arcos sobrepostos
-    // Círculo esquerdo
-    ctx.arc(centerX - width * 0.25, centerY + height * 0.1, height * 0.35, Math.PI * 0.5, Math.PI * 1.5);
-    // Círculo superior esquerdo
-    ctx.arc(centerX - width * 0.1, centerY - height * 0.15, height * 0.4, Math.PI * 1, Math.PI * 1.85);
-    // Círculo superior direito (o maior)
-    ctx.arc(centerX + width * 0.2, centerY - height * 0.05, height * 0.45, Math.PI * 1.3, Math.PI * 0.1);
-    // Círculo direito
-    ctx.arc(centerX + width * 0.35, centerY + height * 0.2, height * 0.25, Math.PI * 1.7, Math.PI * 0.5);
-    
-    ctx.closePath();
-    ctx.fill();
-    ctx.restore();
+// Efeito de Vidro em Círculo (Avatar)
+function drawGlassCircle(ctx, centerX, centerY, radius) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
 }
 
-// --- 3. HANDLER PRINCIPAL ---
+// --- 3. ÍCONES VETORIAIS PARA O PERFIL ---
+
+// Ícone de Coroa (Rank)
+function drawCrownIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = '#FFD700'; // Dourado
+  ctx.beginPath();
+  const s = size / 2;
+  ctx.moveTo(-s, s * 0.5); // Base esq
+  ctx.lineTo(s, s * 0.5);  // Base dir
+  ctx.lineTo(s, -s * 0.2); // Ponta dir
+  ctx.lineTo(s * 0.4, 0);  // Vale dir
+  ctx.lineTo(0, -s);       // Ponta central
+  ctx.lineTo(-s * 0.4, 0); // Vale esq
+  ctx.lineTo(-s, -s * 0.2); // Ponta esq
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// Ícone de ID Card
+function drawIDIcon(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 3;
+  const w = size * 0.8;
+  const h = size * 0.6;
+  ctx.strokeRect(-w/2, -h/2, w, h);
+  // Linhas internas simulando texto
+  ctx.beginPath();
+  ctx.moveTo(-w/2 + 5, -h/2 + 8);
+  ctx.lineTo(-w/2 + 15, -h/2 + 8); // Foto
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-w/2 + 20, -h/2 + 5);
+  ctx.lineTo(w/2 - 5, -h/2 + 5); // Linha 1
+  ctx.moveTo(-w/2 + 20, -h/2 + 12);
+  ctx.lineTo(w/2 - 5, -h/2 + 12); // Linha 2
+  ctx.stroke();
+  ctx.restore();
+}
+
+// --- 4. HANDLER PRINCIPAL ---
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // --- CONFIGURAÇÃO DE LAYOUT HORIZONTAL ---
-    const W = 1100;
-    const H = 500; 
+    // Parâmetros (Design estilo "Sticker" igual ao de música)
+    const CANVAS_SIZE = 1080;
+    const MARGIN = 40; // Margem para o efeito de "adesivo"
+    const W = CANVAS_SIZE - (MARGIN * 2);
+    const H = CANVAS_SIZE - (MARGIN * 2);
+    const CARD_RADIUS = 60;
     
-    // Dados de entrada
+    // Dados da Requisição
     const {
-      name = "Dawn Ramirez (Eu) Nome Longo Teste",
-      username = "yoshikawa_lid_123", // O "lid" do usuário
-      pp = "https://i.imgur.com/Te0cnz2.png"
+      name = "Yoshikawa",
+      username = "@usuario",
+      rank = "Admin", 
+      pp = "https://i.imgur.com/Te0cnz2.png" 
     } = req.method === "POST" ? req.body : req.query;
 
-    const canvas = createCanvas(W, H);
+    const canvas = createCanvas(CANVAS_SIZE, CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
-
-    // 1. Fundo Clean (Branco)
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, W, H);
 
     // --- CARREGAR IMAGEM ---
     let img = null;
@@ -124,104 +124,140 @@ export default async function handler(req, res) {
         const arrayBuffer = await response.arrayBuffer();
         img = await loadImage(Buffer.from(arrayBuffer));
     } catch (e) {
-        console.log("Usando fallback de imagem devido a erro no fetch");
+        console.log("Erro ao carregar imagem, usando fallback cinza");
     }
 
-    const contentMarginX = 80; // Margem esquerda geral
-    const centerY = H / 2;
-    
-    // --- 2. AVATAR (Esquerda) ---
-    const avatarSize = 240;
-    const avatarX = contentMarginX + avatarSize / 2;
-    
-    ctx.save();
+    // --- FUNDO GERAL (Transparente para ser PNG) ---
+    // Movemos o contexto para dentro da margem (Sticker effect)
+    ctx.translate(MARGIN, MARGIN);
+
+    // 1. Clipping da Área Principal (Card Arredondado)
     ctx.beginPath();
-    // Círculo perfeito
-    ctx.arc(avatarX, centerY, avatarSize / 2, 0, Math.PI * 2);
+    ctx.roundRect(0, 0, W, H, CARD_RADIUS);
+    ctx.clip();
+
+    // 2. Desenhar Background (Imagem com Zoom + Blur)
+    let bgRect = { x: 0, y: 0, w: W, h: H };
+    if (img) {
+        const BG_ZOOM = 1.5;
+        const scale = Math.max(W / img.width, H / img.height) * BG_ZOOM;
+        bgRect.w = img.width * scale;
+        bgRect.h = img.height * scale;
+        bgRect.x = (W - bgRect.w) / 2;
+        bgRect.y = (H - bgRect.h) / 2;
+        
+        ctx.filter = 'blur(40px)'; // Blur forte no fundo
+        ctx.drawImage(img, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+        ctx.filter = 'none';
+    } else {
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0,0,W,H);
+    }
+
+    // 3. Overlay Escuro (Gradiente) para legibilidade
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0.3)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // --- LAYOUT DO PERFIL ---
+    
+    // Constantes de Layout
+    const centerX = W / 2;
+    const avatarY = 180;
+    const avatarSize = 300; // Avatar grande
+
+    // 4. Desenhar Avatar Central
+    ctx.save();
+    // Sombra do Avatar
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 10;
+    
+    // Círculo da Imagem
+    ctx.beginPath();
+    ctx.arc(centerX, avatarY + avatarSize/2, avatarSize/2, 0, Math.PI*2);
     ctx.clip();
     
     if (img) {
-        ctx.drawImage(img, avatarX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
+        // Desenha a imagem quadrada preenchendo o círculo
+        ctx.drawImage(img, centerX - avatarSize/2, avatarY, avatarSize, avatarSize);
     } else {
-        ctx.fillStyle = '#E5E5EA'; // Placeholder cinza
-        ctx.fillRect(avatarX - avatarSize/2, centerY - avatarSize/2, avatarSize, avatarSize);
+        ctx.fillStyle = '#333';
+        ctx.fillRect(centerX - avatarSize/2, avatarY, avatarSize, avatarSize);
     }
     ctx.restore();
 
-    // --- 3. ÁREA DE TEXTO (Direita do Avatar) ---
+    // Borda de Vidro sobre o Avatar
+    drawGlassCircle(ctx, centerX, avatarY + avatarSize/2, avatarSize/2);
+
+    // 5. Textos (Nome e User)
+    ctx.textAlign = 'center';
     
-    const textStartX = avatarX + avatarSize / 2 + 50; // Início do texto
-    const textMaxWidth = W - textStartX - contentMarginX; // Espaço disponível para texto
+    // Nome Principal
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 65px Inter, sans-serif'; // Fonte maior
+    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+    ctx.shadowBlur = 10;
+    ctx.fillText(name, centerX, avatarY + avatarSize + 90);
+    ctx.shadowColor = 'transparent'; // Reset sombra
 
-    let cursorY = centerY - 60; // Posição Y inicial para começar a desenhar os textos
+    // Username / ID (Subtítulo)
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+    ctx.font = '400 35px Inter, sans-serif';
+    ctx.fillText(username, centerX, avatarY + avatarSize + 140);
 
-    // NOME (Grande, Bold)
-    ctx.fillStyle = '#000000';
-    // Tenta usar a Bold, fallback para sans-serif padrão
-    ctx.font = GlobalFonts.has('Inter-Bold') ? 'bold 70px Inter-Bold' : 'bold 70px sans-serif';
+    // 6. Cards de Estatísticas (Glassmorphism)
+    // Vamos criar dois "cards" lado a lado ou um grande embaixo
+    const statsY = H - 280;
+    const cardGap = 40;
+    const cardWidth = 380;
+    const cardHeight = 160;
     
-    // Usa a função de quebra de linha e atualiza a posição Y do cursor
-    cursorY = drawWrappedText(ctx, name, textStartX, cursorY, textMaxWidth, 80);
+    // Posições X para centralizar dois cards
+    const leftCardX = centerX - cardWidth - (cardGap/2);
+    const rightCardX = centerX + (cardGap/2);
 
-    // SUBTÍTULO (Ex: "Adulto")
-    ctx.fillStyle = '#8E8E93'; // Cinza estilo iOS
-    ctx.font = GlobalFonts.has('Inter-Regular') ? '500 36px Inter-Regular' : '500 36px sans-serif';
-    cursorY -= 10; // Pequeno ajuste fino no espaçamento
-    ctx.fillText("Adulto", textStartX, cursorY);
+    // --- CARD 1: RANK ---
+    drawGlassRect(ctx, leftCardX, statsY, cardWidth, cardHeight, 30, img, bgRect);
+    drawCrownIcon(ctx, leftCardX + 60, statsY + cardHeight/2, 50);
     
-    // --- 4. BOTÃO "ID YOSHIKAWA" (Abaixo do texto) ---
-
-    cursorY += 50; // Espaço entre o subtítulo e o botão
-
-    const boxHeight = 130;
-    // Largura dinâmica: ocupa o espaço restante ou um tamanho fixo, o que for menor.
-    const boxWidth = Math.min(textMaxWidth + 20, 600); 
-    const boxRadius = 25;
-
-    // Fundo do Botão (Cinza Claro Arredondado)
-    ctx.fillStyle = '#F2F2F7'; 
-    ctx.beginPath();
-    ctx.roundRect(textStartX - 20, cursorY, boxWidth, boxHeight, boxRadius);
-    ctx.fill();
-
-    // ÍCONE DE NUVEM (Azul)
-    const iconSize = 70;
-    const iconMarginLeft = 30;
-    // Centraliza o ícone verticalmente dentro da caixa
-    const iconYPos = cursorY + (boxHeight - iconSize * 0.6) / 2 - 5; 
-    
-    drawCloudIcon(ctx, textStartX + iconMarginLeft - 20, iconYPos, iconSize, '#007AFF'); // Azul iOS
-
-    // TEXTOS DENTRO DO BOTÃO
     ctx.textAlign = 'left';
-    const buttonTextX = textStartX + iconMarginLeft + iconSize + 10;
-    const buttonTextCenterY = cursorY + boxHeight / 2;
-
-    // Título: ID Yoshikawa
-    ctx.fillStyle = '#000000';
-    ctx.font = GlobalFonts.has('Inter-Bold') ? 'bold 38px Inter-Bold' : 'bold 38px sans-serif';
-    ctx.fillText("ID Yoshikawa", buttonTextX, buttonTextCenterY - 10);
-
-    // Subtítulo: lid (username)
-    ctx.fillStyle = '#8E8E93'; // Cinza secundário
-    ctx.font = GlobalFonts.has('Inter-Regular') ? '400 30px Inter-Regular' : '400 30px sans-serif';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '400 24px Inter, sans-serif';
+    ctx.fillText("RANK ATUAL", leftCardX + 110, statsY + 65);
     
-    // Corta o LID se for muito longo
-    let displayLid = username;
-    const maxLidChars = 25;
-    if (displayLid.length > maxLidChars) displayLid = displayLid.substring(0, maxLidChars) + "...";
-    
-    ctx.fillText(displayLid, buttonTextX, buttonTextCenterY + 28);
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 38px Inter, sans-serif';
+    // Trunca rank longo
+    let displayRank = rank;
+    if(displayRank.length > 12) displayRank = displayRank.substring(0,12) + "..";
+    ctx.fillText(displayRank, leftCardX + 110, statsY + 110);
 
-    // --- FINALIZAR ---
+    // --- CARD 2: ID / INFO ---
+    drawGlassRect(ctx, rightCardX, statsY, cardWidth, cardHeight, 30, img, bgRect);
+    drawIDIcon(ctx, rightCardX + 60, statsY + cardHeight/2, 50);
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = 'rgba(255,255,255,0.6)';
+    ctx.font = '400 24px Inter, sans-serif';
+    ctx.fillText("IDENTIFICADOR", rightCardX + 110, statsY + 65);
+    
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = 'bold 32px Inter, sans-serif'; // Fonte um pouco menor pro ID
+    // O ID geralmente é o username sem o @ ou um numero, vamos limpar
+    let displayID = username.replace('@', '');
+    if(displayID.length > 14) displayID = displayID.substring(0,14) + "..";
+    ctx.fillText(displayID, rightCardX + 110, statsY + 110);
+
+    // Finalizar e Enviar
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
-    // Cache opcional para melhor performance em produção
-    // res.setHeader('Cache-Control', 'public, s-maxage=31536000, max-age=31536000');
     res.send(buffer);
 
   } catch (e) {
-    console.error("Erro ao gerar imagem:", e);
-    res.status(500).send("Erro interno na geração da imagem.");
+    console.error(e);
+    res.status(500).send("Erro na geração do perfil");
   }
 }
