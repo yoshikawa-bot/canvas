@@ -14,37 +14,19 @@ try {
 
 // --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
 
-// FUNÇÃO CORAÇÃO PERFEITO (Formato Emoji ❤️)
+// FUNÇÃO CORAÇÃO (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
-  ctx.fillStyle = '#FF0000'; // Vermelho padrão do coração
+  ctx.fillStyle = '#FFFFFF';
   ctx.beginPath();
-  
-  // Tamanho ajustado
-  const s = size * 1.0;
-  
-  // Ponto superior central (parte inferior do coração)
-  const topCurveHeight = s * 0.3;
-  
-  // Ponto de partida: parte inferior central
-  ctx.moveTo(0, s * 0.4);
-  
-  // Curva da esquerda
-  ctx.bezierCurveTo(
-    -s * 0.5, s * 0.4,    // Ponto de controle 1
-    -s * 0.6, -topCurveHeight, // Ponto de controle 2
-    0, -s * 0.2           // Ponto final (topo esquerdo)
-  );
-  
-  // Curva da direita
-  ctx.bezierCurveTo(
-    s * 0.6, -topCurveHeight,  // Ponto de controle 1
-    s * 0.5, s * 0.4,         // Ponto de controle 2
-    0, s * 0.4                // Ponto final (parte inferior central)
-  );
-  
-  ctx.closePath();
+  const s = size * 0.9; 
+  ctx.moveTo(0, s * 0.45); 
+  ctx.bezierCurveTo(-s * 0.7, s * 0.1, -s * 0.6, -s * 0.6, 0, -s * 0.25);
+  ctx.bezierCurveTo(s * 0.6, -s * 0.6, s * 0.7, s * 0.1, 0, s * 0.45);
+  ctx.fill();
+  ctx.restore();
+}
 
 // FUNÇÃO COMPARTILHAR
 function drawShareIcon(ctx, x, y, size) {
