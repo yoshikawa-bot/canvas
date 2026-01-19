@@ -47,14 +47,13 @@ function truncateText(ctx, text, maxWidth) {
   return truncated + '...';
 }
 
-// --- FUNÇÃO DE ÍCONES ATUALIZADA ---
+// --- FUNÇÃO DE ÍCONES (Centralização e Desenhos Corrigidos) ---
 function drawIcon(ctx, type, cx, cy, btnSize) {
   ctx.save();
   ctx.translate(cx, cy);
   
-  // Escala para ajustar os ícones dentro do botão (base 105px)
-  // Ajuste esse valor se quiser ícones maiores ou menores
-  const scale = btnSize / 80; 
+  // Ajuste de escala (baseado no tamanho do botão)
+  const scale = btnSize / 90; 
   ctx.scale(scale, scale);
 
   ctx.fillStyle = '#FFFFFF';
@@ -63,65 +62,80 @@ function drawIcon(ctx, type, cx, cy, btnSize) {
   ctx.lineJoin = 'round';
 
   if (type === 'heart') {
-    // Ícone de Coração Preenchido
+    // CORAÇÃO
+    // Centralização ajustada manualmente para o centro visual
+    ctx.translate(0, -2); 
+    
     ctx.beginPath();
-    const topCurveHeight = 12;
-    ctx.moveTo(0, 10);
-    ctx.bezierCurveTo(0, -5, -18, -5, -18, 8);
-    ctx.bezierCurveTo(-18, 18, -10, 24, 0, 32);
-    ctx.bezierCurveTo(10, 24, 18, 18, 18, 8);
-    ctx.bezierCurveTo(18, -5, 0, -5, 0, 10);
+    ctx.moveTo(0, 12);
+    ctx.bezierCurveTo(0, -6, -20, -6, -20, 9);
+    ctx.bezierCurveTo(-20, 20, -11, 27, 0, 36);
+    ctx.bezierCurveTo(11, 27, 20, 20, 20, 9);
+    ctx.bezierCurveTo(20, -6, 0, -6, 0, 12);
     ctx.closePath();
-    // Centralizar visualmente
-    ctx.translate(0, -10);
+    
+    // Offset para centralizar o path desenhado acima
+    ctx.translate(0, -12);
     ctx.fill();
   } 
   else if (type === 'share') {
-    // Ícone de Compartilhar estilo iOS
-    ctx.lineWidth = 3.5;
+    // COMPARTILHAR (iOS Style)
+    // Caixa com seta para cima
+    ctx.lineWidth = 4;
     
+    // Deslocar levemente para baixo para centralizar a composição (caixa + seta)
+    ctx.translate(0, 2);
+
     // Caixa
     ctx.beginPath();
-    ctx.moveTo(-10, -2);
-    ctx.lineTo(-10, 12);
-    ctx.quadraticCurveTo(-10, 16, -6, 16);
-    ctx.lineTo(6, 16);
-    ctx.quadraticCurveTo(10, 16, 10, 12);
-    ctx.lineTo(10, -2);
+    // A caixa vai de -12 a +12 no X, e de -2 a 16 no Y
+    ctx.moveTo(-11, -2);
+    ctx.lineTo(-11, 12);
+    ctx.quadraticCurveTo(-11, 17, -6, 17);
+    ctx.lineTo(6, 17);
+    ctx.quadraticCurveTo(11, 17, 11, 12);
+    ctx.lineTo(11, -2);
     ctx.stroke();
 
     // Seta
     ctx.beginPath();
-    ctx.moveTo(0, 6);  // Base da seta
-    ctx.lineTo(0, -14); // Topo da seta
+    ctx.moveTo(0, 8);   // Base da linha vertical
+    ctx.lineTo(0, -16); // Topo da linha vertical
     ctx.stroke();
 
     // Ponta da seta
     ctx.beginPath();
-    ctx.moveTo(-6, -8);
-    ctx.lineTo(0, -15);
-    ctx.lineTo(6, -8);
+    ctx.moveTo(-7, -8);
+    ctx.lineTo(0, -17);
+    ctx.lineTo(7, -8);
     ctx.stroke();
   }
   else if (type === 'phone') {
-    // Ícone de Telefone
-    ctx.lineWidth = 4; // Um pouco mais grosso para combinar
+    // TELEFONE (Refeito e Sólido)
+    // Centralização
+    ctx.translate(-1, 0);
+    
+    // Rotação para a posição diagonal de chamada
+    ctx.rotate((Math.PI / 180) * -15); 
+
     ctx.beginPath();
-    // Um desenho de telefone simplificado
-    ctx.arc(-7, 7, 3, 0, Math.PI * 2); 
-    ctx.arc(8, -8, 3, 0, Math.PI * 2); 
+    // Desenho de um receptor clássico usando curvas
+    // Parte esquerda (fone)
+    ctx.moveTo(-14, -8);
+    ctx.quadraticCurveTo(-20, -10, -20, 0); // curva externa esq
+    ctx.quadraticCurveTo(-20, 10, -14, 8);  // volta
+    
+    // Arco de conexão (cabo)
+    ctx.quadraticCurveTo(0, 15, 14, 8);
+
+    // Parte direita (fone)
+    ctx.quadraticCurveTo(20, 10, 20, 0);
+    ctx.quadraticCurveTo(20, -10, 14, -8);
+
+    // Arco de conexão superior (interno)
+    ctx.quadraticCurveTo(0, -4, -14, -8);
+    
     ctx.fill();
-    
-    ctx.beginPath();
-    ctx.moveTo(-6, 6);
-    ctx.quadraticCurveTo(0, 0, 7, -7);
-    ctx.stroke();
-    
-    // Corpo do telefone (arco)
-    ctx.beginPath();
-    ctx.moveTo(-8, 5);
-    ctx.quadraticCurveTo(-15, -15, 5, -8);
-    ctx.stroke();
   }
 
   ctx.restore();
@@ -139,9 +153,11 @@ export default async function handler(req, res) {
       pp = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    const CREATOR_LID = '29352460828825@lid';
-    // [CORREÇÃO] Forçar String(lid) para evitar erro de tipo
-    const isCreator = String(lid) === CREATOR_LID;
+    // [ATUALIZADO] Nova string de validação
+    const CREATOR_ID_STRING = 'Yoshikawa Profile';
+    
+    // Comparação simples de string, removendo espaços extras se houver
+    const isCreator = String(lid).trim() === CREATOR_ID_STRING;
 
     // --- DIMENSÕES ---
     const W = 600; 
@@ -180,8 +196,7 @@ export default async function handler(req, res) {
       ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
     }
 
-    // 2.2 CAMADA ESCURA (Overlay)
-    // [MODIFICAÇÃO] Fundo menos escuro (0.35 em vez de 0.5)
+    // 2.2 CAMADA ESCURA (Overlay) - Leve para destacar o vidro
     ctx.fillStyle = 'rgba(15, 15, 15, 0.35)'; 
     ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
 
@@ -211,36 +226,32 @@ export default async function handler(req, res) {
     }
     ctx.restore();
 
-    // 4. TEXTOS E TAG
+    // 4. TEXTOS
     ctx.textAlign = 'center';
 
     const nameY = AVATAR_CENTER_Y + (AVATAR_SIZE / 2) + 60;
     const usernameY = nameY + 35;
 
-    // Configuração da fonte do NOME
     const nameFont = '800 38px Inter';
     ctx.font = nameFont;
 
-    // Preparar texto do nome truncado se necessário
     let tName = name;
     const maxNameWidth = CARD_W - 120;
     if (ctx.measureText(tName).width > maxNameWidth) {
          tName = truncateText(ctx, name, maxNameWidth);
     }
-    // Medir largura final do nome para posicionar a TAG
     const finalNameWidth = ctx.measureText(tName).width;
 
-    // Desenhar Nome
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; 
     ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = nameFont; // Reaplicar para garantir
+    ctx.font = nameFont; 
     ctx.fillText(tName, W / 2, nameY);
     ctx.restore();
 
-    // --- TAG CRIADOR (Corrigido) ---
+    // --- TAG CRIADOR ---
     if (isCreator) {
         ctx.save();
         
@@ -254,11 +265,9 @@ export default async function handler(req, res) {
         const tagH = 24;
         const tagRadius = 12;
         
-        // Posição calculada com base na largura exata do nome desenhado
         const tagX = (W / 2) + (finalNameWidth / 2) + 15;
         const tagY = nameY - (tagH / 2) - 8; 
 
-        // Sombra suave na tag
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
         ctx.shadowBlur = 5;
         ctx.shadowOffsetY = 2;
@@ -286,8 +295,6 @@ export default async function handler(req, res) {
 
     // 5. BOTÕES DE AÇÃO (EFEITO VIDRO)
     const BTN_Y = CARD_Y + CARD_H - (BTN_SIZE / 2) - 55; 
-    
-    // [MODIFICAÇÃO] Ícones solicitados
     const icons = ['heart', 'share', 'phone'];
     
     const totalW = (BTN_SIZE * 3) + (BTN_GAP * 2);
@@ -299,28 +306,25 @@ export default async function handler(req, res) {
 
       ctx.save();
       
-      // Sombra do botão
+      // Sombra
       ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
       ctx.shadowBlur = 20;
       ctx.shadowOffsetY = 10;
 
-      // Desenhar círculo
+      // Círculo Vidro
       ctx.beginPath();
       ctx.arc(cx, cy, BTN_SIZE / 2, 0, Math.PI * 2);
       
-      // [MODIFICAÇÃO] Efeito de Vidro (Fundo translúcido + Borda)
-      // Preenchimento claro/branco bem transparente
       ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
       ctx.fill();
       
-      // Borda (Stroke) para dar definição ao vidro
       ctx.lineWidth = 1.5;
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
       ctx.stroke();
 
       ctx.restore();
 
-      // Desenhar o ícone por cima
+      // Desenhar ícone
       drawIcon(ctx, icon, cx, cy, BTN_SIZE);
 
       startX += BTN_SIZE + BTN_GAP;
