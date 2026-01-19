@@ -6,11 +6,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- 1. CONFIGURAÇÃO DE FONTES ---
-// Certifique-se de ter a fonte Inter ou SF Pro no caminho correto
-const fontPath = path.join(__dirname, '../fonts/Inter-Bold.ttf'); // Ajuste o nome do arquivo se necessário (ex: Inter_18pt-Bold.ttf)
-// Tenta registrar variações se tiverem nomes diferentes
+// [CORREÇÃO] Voltando para o nome exato do arquivo que você possui
+const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+
 if (!GlobalFonts.has('Inter')) {
-    try { GlobalFonts.registerFromPath(fontPath, 'Inter'); } catch (e) { console.log("Erro fonte principal, tentando fallback"); }
+  // O registro precisa ser robusto
+  GlobalFonts.registerFromPath(fontPath, 'Inter');
 }
 
 // --- 2. FUNÇÕES AUXILIARES ---
@@ -49,15 +50,16 @@ function truncateText(ctx, text, maxWidth) {
   return truncated + '...';
 }
 
-// Desenha ícones (Ajustados para ficarem maiores e mais nítidos)
+// Desenha ícones 
 function drawIOSIcon(ctx, type, cx, cy, scaleSize) {
   ctx.save();
-  // Cor do ícone (Verde Limão)
-  ctx.fillStyle = '#D0F468'; 
-  ctx.strokeStyle = '#D0F468';
+  
+  // [CORREÇÃO] Ícones agora são BRANCOS
+  ctx.fillStyle = '#FFFFFF'; 
+  ctx.strokeStyle = '#FFFFFF';
   
   // Fator de escala baseado no tamanho do botão original vs novo
-  const scale = scaleSize / 75; // 75 era o tamanho base anterior
+  const scale = scaleSize / 75; 
   ctx.translate(cx, cy);
   ctx.scale(scale, scale);
   ctx.translate(-cx, -cy);
@@ -106,43 +108,36 @@ export default async function handler(req, res) {
     const {
       name = "Zion Carter",
       username = "best dude",
-      // Adicionado o LID para verificação
       lid = "", 
       pp = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    // ID do Criador para verificação
     const CREATOR_LID = '29352460828825@lid';
     const isCreator = lid === CREATOR_LID;
 
-    // --- DIMENSÕES E CONSTANTES AJUSTADAS ---
+    // --- DIMENSÕES ---
     const W = 600; 
     const H = 600;
-    
     const CARD_W = 550;
     const CARD_H = 550;
     const CARD_X = (W - CARD_W) / 2;
     const CARD_Y = (H - CARD_H) / 2;
     
-    // [MODIFICADO] Cantos muito mais arredondados
-    const CARD_RADIUS = 95; 
+    const CARD_RADIUS = 95; // Cantos bem arredondados
 
-    // [MODIFICADO] Tamanhos e espaçamentos aumentados
-    const AVATAR_SIZE = 180; // Foto maior
-    const BTN_SIZE = 105;    // Botões muito maiores
-    const BTN_GAP = 40;      // Mais espaço entre botões
+    const AVATAR_SIZE = 180; 
+    const BTN_SIZE = 105;    
+    const BTN_GAP = 40;      
 
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
     const imgAvatar = await loadImage(pp).catch(() => null);
 
-    // 0. Limpar e fundo transparente
+    // 0. Limpar
     ctx.clearRect(0, 0, W, H);
 
-    // [REMOVIDO] 1. SOMBRA DO CARTÃO PRINCIPAL (Glow externo) - Removido conforme solicitado
-
-    // 2. DESENHAR O SHAPE DO CARTÃO (Para clipar o fundo)
+    // 2. DESENHAR O SHAPE DO CARTÃO
     ctx.save();
     drawRoundedRectPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RADIUS);
     ctx.clip(); 
@@ -157,21 +152,20 @@ export default async function handler(req, res) {
       ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
     }
 
-    // 2.2 CAMADA ESCURA (Overlay) - Mantida para legibilidade do texto
+    // 2.2 CAMADA ESCURA (Overlay)
     ctx.fillStyle = 'rgba(15, 15, 15, 0.5)'; 
     ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
 
-    ctx.restore(); // Remove o clip do cartão principal
+    ctx.restore(); 
 
     // --- ELEMENTOS INTERNOS ---
 
-    // 3. AVATAR (Foto de perfil)
+    // 3. AVATAR
     const AVATAR_CENTER_X = W / 2;
-    // [MODIFICADO] Posição Y ajustada para cima para dar mais espaço
     const AVATAR_CENTER_Y = CARD_Y + 130; 
 
     ctx.save();
-    // Sombra do componente interno (Mantida)
+    // Sombra do Avatar (Componente interno)
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 30;
     ctx.shadowOffsetY = 15;
@@ -181,7 +175,6 @@ export default async function handler(req, res) {
     ctx.fillStyle = '#111'; 
     ctx.fill(); 
 
-    // Clipar para a imagem
     ctx.shadowColor = 'transparent';
     ctx.clip(); 
 
@@ -193,22 +186,19 @@ export default async function handler(req, res) {
     // 4. TEXTOS
     ctx.textAlign = 'center';
 
-    // [MODIFICADO] Posições Y dos textos ajustadas para o novo tamanho do avatar e espaçamento
     const nameY = AVATAR_CENTER_Y + (AVATAR_SIZE / 2) + 60;
     const usernameY = nameY + 35;
 
     // Nome
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra interna do texto (mantida)
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; 
     ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#FFFFFF';
-    // Fonte ligeiramente maior
-    ctx.font = '800 38px Inter'; 
+    ctx.font = '800 38px Inter'; // Se a fonte carregou, aqui vai funcionar
     
-    // Cálculo para truncar e posicionar a tag se necessário
     let tName = name;
-    const maxNameWidth = CARD_W - 120; // Margem de segurança
+    const maxNameWidth = CARD_W - 120;
     let nameWidth = ctx.measureText(tName).width;
 
     if (nameWidth > maxNameWidth) {
@@ -219,37 +209,30 @@ export default async function handler(req, res) {
     ctx.fillText(tName, W / 2, nameY);
     ctx.restore();
 
-    // --- [NOVO] LÓGICA DA TAG CRIADOR ---
+    // --- TAG CRIADOR ---
     if (isCreator) {
         ctx.save();
-        ctx.font = '800 38px Inter'; // Mesma fonte para medir corretamente
+        ctx.font = '800 38px Inter'; 
         const actualNameWidth = ctx.measureText(tName).width;
         
-        // Configuração da Tag
         const tagText = "CRIADOR";
         const tagFont = '700 14px Inter';
         ctx.font = tagFont;
         const tagPaddingX = 10;
-        const tagPaddingY = 5;
         const tagTextWidth = ctx.measureText(tagText).width;
         const tagW = tagTextWidth + (tagPaddingX * 2);
         const tagH = 24;
         const tagRadius = 12;
         
-        // Posição da Tag (à direita do nome)
         const tagX = (W / 2) + (actualNameWidth / 2) + 15;
-        // Ajuste fino vertical para alinhar com o centro ótico do nome
         const tagY = nameY - (tagH / 2) - 8; 
 
-        // Sombra leve na tag
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
         ctx.shadowBlur = 5;
         ctx.shadowOffsetY = 2;
 
-        // Desenha o fundo vermelho da tag
-        fillRoundedRect(ctx, tagX, tagY, tagW, tagH, tagRadius, '#FF3B30'); // Vermelho estilo iOS
+        fillRoundedRect(ctx, tagX, tagY, tagW, tagH, tagRadius, '#FF3B30'); 
 
-        // Desenha o texto da tag
         ctx.shadowColor = 'transparent';
         ctx.fillStyle = 'white';
         ctx.font = tagFont;
@@ -259,24 +242,20 @@ export default async function handler(req, res) {
         
         ctx.restore();
     }
-    // ------------------------------------
-
 
     // Username
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra interna do texto (mantida)
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; 
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 2;
     ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'; 
-    ctx.font = '600 22px Inter'; // Fonte ligeiramente maior
+    ctx.font = '600 22px Inter'; 
     ctx.fillText(username, W / 2, usernameY);
     ctx.restore();
 
     // 5. BOTÕES DE AÇÃO
-    // [MODIFICADO] Posição Y recalculada para os botões maiores não baterem na borda inferior
     const BTN_Y = CARD_Y + CARD_H - (BTN_SIZE / 2) - 55; 
-    
-    const BTN_BG_COLOR = 'rgba(40, 40, 40, 0.9)'; // Um pouco mais claro e opaco
+    const BTN_BG_COLOR = 'rgba(40, 40, 40, 0.9)'; 
 
     const icons = ['phone', 'chat', 'video'];
     
@@ -288,7 +267,7 @@ export default async function handler(req, res) {
       const cy = BTN_Y;
 
       ctx.save();
-      // Sombra dos componentes internos (Mantida e ajustada para o tamanho)
+      // Sombra dos botões (Componente interno)
       ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
       ctx.shadowBlur = 25;
       ctx.shadowOffsetY = 12;
@@ -299,7 +278,6 @@ export default async function handler(req, res) {
       ctx.fill();
       ctx.restore();
 
-      // Desenha ícone (passando o novo tamanho para escala)
       drawIOSIcon(ctx, icon, cx, cy, BTN_SIZE);
 
       startX += BTN_SIZE + BTN_GAP;
@@ -308,7 +286,6 @@ export default async function handler(req, res) {
     // 6. ENVIAR RESPOSTA
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
-    // Cache control opcional para performance
     res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.send(buffer);
 
