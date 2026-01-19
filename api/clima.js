@@ -30,19 +30,20 @@ export default async function handler(req, res) {
 
     // --- MEDIDAS DE UI ---
     const W = DESIGN_RES, H = DESIGN_RES;
-    const PADDING = 100; // Margem interna do conteúdo
+    const PADDING = 100; 
     const CARD_RADIUS = 120;
-    const BG_ZOOM = 1.0; // REMOVIDO O ZOOM EXTRA (era 1.4)
+    const BG_ZOOM = 1.0; 
 
+    // URLs atualizadas conforme solicitado
     const dayBgUrl = 'https://yoshikawa-bot.github.io/cache/images/ae96713a.jpg';
     const nightBgUrl = 'https://yoshikawa-bot.github.io/cache/images/232dfce8.jpg';
 
-    // Captura os dados do request (agora focados em clima/cidade)
+    // Captura os dados
     const {
       dateStr = "8 de Maio",
       timeStr = "14:00",
-      city = "São Paulo",    // Lado esquerdo inferior
-      degree = "24°C",       // Lado direito inferior
+      city = "São Paulo",    
+      degree = "24°C",       
       theme = "day"
     } = req.method === "POST" ? req.body : req.query;
 
@@ -73,7 +74,6 @@ export default async function handler(req, res) {
 
     // Desenha o fundo
     if (bgImg) {
-      // Ajuste de escala exato para cobrir (cover) sem zoom excessivo
       const scale = Math.max(W / bgImg.width, H / bgImg.height) * BG_ZOOM;
       const wScaled = bgImg.width * scale;
       const hScaled = bgImg.height * scale;
@@ -82,20 +82,18 @@ export default async function handler(req, res) {
       
       ctx.drawImage(bgImg, x, y, wScaled, hScaled);
     } else {
-      const fallback = ctx.createLinearGradient(0, 0, 0, H);
-      fallback.addColorStop(0, '#87CEEB');
-      fallback.addColorStop(1, '#B0E0E6');
-      ctx.fillStyle = fallback;
+      ctx.fillStyle = '#87CEEB';
       ctx.fillRect(0, 0, W, H);
     }
 
-    // --- REMOVIDOS: Linha pontilhada e Avião ---
-
-    // --- TEXTOS SUPERIORES (Data e Hora) ---
-    // Tamanho reduzido drasticamente (era 62px)
-    const topY = 120;
+    // --- CONFIGURAÇÃO DE FONTES ---
+    // Solicitado: Mesmo tamanho para texto superior e inferior
+    const commonFontSize = 'bold 48px Inter, sans-serif'; 
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 28px Inter, sans-serif'; 
+    ctx.font = commonFontSize; 
+    
+    // --- TEXTOS SUPERIORES (Data e Hora) ---
+    const topY = 120;
     
     // Data na Esquerda Superior
     ctx.textAlign = 'left';
@@ -106,30 +104,44 @@ export default async function handler(req, res) {
     ctx.fillText(timeStr, W - PADDING, topY);
 
     // --- TEXTOS INFERIORES (Cidade e Graus) ---
-    // Posicionamento próximo ao fundo
     const bottomY = H - 100;
 
-    // Tamanho reduzido (era 92px)
-    ctx.font = 'bold 48px Inter, sans-serif';
+    // Lado Direito: Graus (Renderizamos primeiro para garantir espaço se necessário, mas mantendo a ordem visual)
+    ctx.textAlign = 'right';
+    ctx.fillText(degree, W - PADDING, bottomY);
 
     // Lado Esquerdo: Cidade
     ctx.textAlign = 'left';
     let displayCity = city;
-    // Truncamento simples caso o nome da cidade seja gigante
-    const maxTextWidth = 500;
-    if (ctx.measureText(displayCity).width > maxTextWidth) {
-       while (ctx.measureText(displayCity + '...').width > maxTextWidth && displayCity.length > 0) {
+    
+    // TRUNCAMENTO DE CIDADE
+    // A cidade não deve passar do meio da imagem (W / 2)
+    // Largura máxima permitida = (Meio da tela) - Padding
+    const maxCityWidth = (W / 2) - PADDING; 
+    
+    if (ctx.measureText(displayCity).width > maxCityWidth) {
+       while (ctx.measureText(displayCity + '...').width > maxCityWidth && displayCity.length > 0) {
          displayCity = displayCity.slice(0, -1);
        }
        displayCity += '...';
     }
     ctx.fillText(displayCity, PADDING, bottomY);
 
-    // Lado Direito: Graus
-    ctx.textAlign = 'right';
-    ctx.fillText(degree, W - PADDING, bottomY);
-
+    // --- MARCA D'ÁGUA VERTICAL (Yoshikawa) ---
+    ctx.save();
+    ctx.font = 'bold 20px Inter, sans-serif'; // Letras pequenas
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.8)'; // Um pouco de transparência para ficar elegante
+    
+    // Posiciona na lateral direita, centralizado verticalmente
+    // X = Largura total - um pequeno padding (ex: 30px da borda)
+    // Y = Metade da altura
+    ctx.translate(W - 40, H / 2); 
+    ctx.rotate(Math.PI / 2); // Rotaciona 90 graus
+    ctx.textAlign = 'center';
+    ctx.fillText('Yoshikawa', 0, 0);
     ctx.restore();
+
+    ctx.restore(); // Restaura o contexto principal
 
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
