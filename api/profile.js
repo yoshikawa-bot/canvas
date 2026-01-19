@@ -6,11 +6,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- 1. CONFIGURAÇÃO DE FONTES ---
-// [CORREÇÃO] Voltando para o nome exato do arquivo que você possui
 const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
 
 if (!GlobalFonts.has('Inter')) {
-  // O registro precisa ser robusto
   GlobalFonts.registerFromPath(fontPath, 'Inter');
 }
 
@@ -30,7 +28,6 @@ function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
-// Função auxiliar para desenhar rect preenchido arredondado (usado na tag)
 function fillRoundedRect(ctx, x, y, width, height, radius, color) {
     ctx.save();
     ctx.fillStyle = color;
@@ -50,53 +47,83 @@ function truncateText(ctx, text, maxWidth) {
   return truncated + '...';
 }
 
-// Desenha ícones 
-function drawIOSIcon(ctx, type, cx, cy, scaleSize) {
+// --- FUNÇÃO DE ÍCONES ATUALIZADA ---
+function drawIcon(ctx, type, cx, cy, btnSize) {
   ctx.save();
-  
-  // [CORREÇÃO] Ícones agora são BRANCOS
-  ctx.fillStyle = '#FFFFFF'; 
-  ctx.strokeStyle = '#FFFFFF';
-  
-  // Fator de escala baseado no tamanho do botão original vs novo
-  const scale = scaleSize / 75; 
   ctx.translate(cx, cy);
+  
+  // Escala para ajustar os ícones dentro do botão (base 105px)
+  // Ajuste esse valor se quiser ícones maiores ou menores
+  const scale = btnSize / 80; 
   ctx.scale(scale, scale);
-  ctx.translate(-cx, -cy);
 
-  if (type === 'phone') {
-    ctx.lineWidth = 4.5;
-    ctx.lineCap = 'round';
+  ctx.fillStyle = '#FFFFFF';
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  if (type === 'heart') {
+    // Ícone de Coração Preenchido
     ctx.beginPath();
-    ctx.arc(cx - 6, cy + 6, 4, 0, Math.PI * 2); 
-    ctx.arc(cx + 9, cy - 9, 4, 0, Math.PI * 2); 
+    const topCurveHeight = 12;
+    ctx.moveTo(0, 10);
+    ctx.bezierCurveTo(0, -5, -18, -5, -18, 8);
+    ctx.bezierCurveTo(-18, 18, -10, 24, 0, 32);
+    ctx.bezierCurveTo(10, 24, 18, 18, 18, 8);
+    ctx.bezierCurveTo(18, -5, 0, -5, 0, 10);
+    ctx.closePath();
+    // Centralizar visualmente
+    ctx.translate(0, -10);
+    ctx.fill();
+  } 
+  else if (type === 'share') {
+    // Ícone de Compartilhar estilo iOS
+    ctx.lineWidth = 3.5;
+    
+    // Caixa
+    ctx.beginPath();
+    ctx.moveTo(-10, -2);
+    ctx.lineTo(-10, 12);
+    ctx.quadraticCurveTo(-10, 16, -6, 16);
+    ctx.lineTo(6, 16);
+    ctx.quadraticCurveTo(10, 16, 10, 12);
+    ctx.lineTo(10, -2);
+    ctx.stroke();
+
+    // Seta
+    ctx.beginPath();
+    ctx.moveTo(0, 6);  // Base da seta
+    ctx.lineTo(0, -14); // Topo da seta
+    ctx.stroke();
+
+    // Ponta da seta
+    ctx.beginPath();
+    ctx.moveTo(-6, -8);
+    ctx.lineTo(0, -15);
+    ctx.lineTo(6, -8);
+    ctx.stroke();
+  }
+  else if (type === 'phone') {
+    // Ícone de Telefone
+    ctx.lineWidth = 4; // Um pouco mais grosso para combinar
+    ctx.beginPath();
+    // Um desenho de telefone simplificado
+    ctx.arc(-7, 7, 3, 0, Math.PI * 2); 
+    ctx.arc(8, -8, 3, 0, Math.PI * 2); 
     ctx.fill();
     
     ctx.beginPath();
-    ctx.moveTo(cx - 5, cy + 5);
-    ctx.quadraticCurveTo(cx, cy, cx + 8, cy - 8);
+    ctx.moveTo(-6, 6);
+    ctx.quadraticCurveTo(0, 0, 7, -7);
     ctx.stroke();
-  } 
-  else if (type === 'chat') {
+    
+    // Corpo do telefone (arco)
     ctx.beginPath();
-    ctx.roundRect(cx - 12, cy - 11, 24, 19, 6);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx - 4, cy + 7);
-    ctx.lineTo(cx - 8, cy + 14);
-    ctx.lineTo(cx + 5, cy + 7);
-    ctx.fill();
+    ctx.moveTo(-8, 5);
+    ctx.quadraticCurveTo(-15, -15, 5, -8);
+    ctx.stroke();
   }
-  else if (type === 'video') {
-    ctx.beginPath();
-    ctx.roundRect(cx - 13, cy - 9, 18, 16, 4);
-    ctx.fill();
-    ctx.beginPath();
-    ctx.moveTo(cx + 7, cy);
-    ctx.lineTo(cx + 14, cy - 6);
-    ctx.lineTo(cx + 14, cy + 6);
-    ctx.fill();
-  }
+
   ctx.restore();
 }
 
@@ -113,7 +140,8 @@ export default async function handler(req, res) {
     } = req.method === "POST" ? req.body : req.query;
 
     const CREATOR_LID = '29352460828825@lid';
-    const isCreator = lid === CREATOR_LID;
+    // [CORREÇÃO] Forçar String(lid) para evitar erro de tipo
+    const isCreator = String(lid) === CREATOR_LID;
 
     // --- DIMENSÕES ---
     const W = 600; 
@@ -123,7 +151,7 @@ export default async function handler(req, res) {
     const CARD_X = (W - CARD_W) / 2;
     const CARD_Y = (H - CARD_H) / 2;
     
-    const CARD_RADIUS = 95; // Cantos bem arredondados
+    const CARD_RADIUS = 95; 
 
     const AVATAR_SIZE = 180; 
     const BTN_SIZE = 105;    
@@ -153,7 +181,8 @@ export default async function handler(req, res) {
     }
 
     // 2.2 CAMADA ESCURA (Overlay)
-    ctx.fillStyle = 'rgba(15, 15, 15, 0.5)'; 
+    // [MODIFICAÇÃO] Fundo menos escuro (0.35 em vez de 0.5)
+    ctx.fillStyle = 'rgba(15, 15, 15, 0.35)'; 
     ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
 
     ctx.restore(); 
@@ -165,7 +194,6 @@ export default async function handler(req, res) {
     const AVATAR_CENTER_Y = CARD_Y + 130; 
 
     ctx.save();
-    // Sombra do Avatar (Componente interno)
     ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
     ctx.shadowBlur = 30;
     ctx.shadowOffsetY = 15;
@@ -183,50 +211,54 @@ export default async function handler(req, res) {
     }
     ctx.restore();
 
-    // 4. TEXTOS
+    // 4. TEXTOS E TAG
     ctx.textAlign = 'center';
 
     const nameY = AVATAR_CENTER_Y + (AVATAR_SIZE / 2) + 60;
     const usernameY = nameY + 35;
 
-    // Nome
+    // Configuração da fonte do NOME
+    const nameFont = '800 38px Inter';
+    ctx.font = nameFont;
+
+    // Preparar texto do nome truncado se necessário
+    let tName = name;
+    const maxNameWidth = CARD_W - 120;
+    if (ctx.measureText(tName).width > maxNameWidth) {
+         tName = truncateText(ctx, name, maxNameWidth);
+    }
+    // Medir largura final do nome para posicionar a TAG
+    const finalNameWidth = ctx.measureText(tName).width;
+
+    // Desenhar Nome
     ctx.save();
     ctx.shadowColor = 'rgba(0,0,0,0.8)'; 
     ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '800 38px Inter'; // Se a fonte carregou, aqui vai funcionar
-    
-    let tName = name;
-    const maxNameWidth = CARD_W - 120;
-    let nameWidth = ctx.measureText(tName).width;
-
-    if (nameWidth > maxNameWidth) {
-         tName = truncateText(ctx, name, maxNameWidth);
-         nameWidth = ctx.measureText(tName).width;
-    }
-    
+    ctx.font = nameFont; // Reaplicar para garantir
     ctx.fillText(tName, W / 2, nameY);
     ctx.restore();
 
-    // --- TAG CRIADOR ---
+    // --- TAG CRIADOR (Corrigido) ---
     if (isCreator) {
         ctx.save();
-        ctx.font = '800 38px Inter'; 
-        const actualNameWidth = ctx.measureText(tName).width;
         
         const tagText = "CRIADOR";
         const tagFont = '700 14px Inter';
         ctx.font = tagFont;
+        
         const tagPaddingX = 10;
         const tagTextWidth = ctx.measureText(tagText).width;
         const tagW = tagTextWidth + (tagPaddingX * 2);
         const tagH = 24;
         const tagRadius = 12;
         
-        const tagX = (W / 2) + (actualNameWidth / 2) + 15;
+        // Posição calculada com base na largura exata do nome desenhado
+        const tagX = (W / 2) + (finalNameWidth / 2) + 15;
         const tagY = nameY - (tagH / 2) - 8; 
 
+        // Sombra suave na tag
         ctx.shadowColor = 'rgba(0,0,0,0.3)';
         ctx.shadowBlur = 5;
         ctx.shadowOffsetY = 2;
@@ -235,7 +267,6 @@ export default async function handler(req, res) {
 
         ctx.shadowColor = 'transparent';
         ctx.fillStyle = 'white';
-        ctx.font = tagFont;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(tagText, tagX + tagW / 2, tagY + tagH / 2);
@@ -253,11 +284,11 @@ export default async function handler(req, res) {
     ctx.fillText(username, W / 2, usernameY);
     ctx.restore();
 
-    // 5. BOTÕES DE AÇÃO
+    // 5. BOTÕES DE AÇÃO (EFEITO VIDRO)
     const BTN_Y = CARD_Y + CARD_H - (BTN_SIZE / 2) - 55; 
-    const BTN_BG_COLOR = 'rgba(40, 40, 40, 0.9)'; 
-
-    const icons = ['phone', 'chat', 'video'];
+    
+    // [MODIFICAÇÃO] Ícones solicitados
+    const icons = ['heart', 'share', 'phone'];
     
     const totalW = (BTN_SIZE * 3) + (BTN_GAP * 2);
     let startX = (W - totalW) / 2;
@@ -267,18 +298,30 @@ export default async function handler(req, res) {
       const cy = BTN_Y;
 
       ctx.save();
-      // Sombra dos botões (Componente interno)
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 25;
-      ctx.shadowOffsetY = 12;
+      
+      // Sombra do botão
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 10;
 
+      // Desenhar círculo
       ctx.beginPath();
       ctx.arc(cx, cy, BTN_SIZE / 2, 0, Math.PI * 2);
-      ctx.fillStyle = BTN_BG_COLOR;
+      
+      // [MODIFICAÇÃO] Efeito de Vidro (Fundo translúcido + Borda)
+      // Preenchimento claro/branco bem transparente
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.1)'; 
       ctx.fill();
+      
+      // Borda (Stroke) para dar definição ao vidro
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.25)';
+      ctx.stroke();
+
       ctx.restore();
 
-      drawIOSIcon(ctx, icon, cx, cy, BTN_SIZE);
+      // Desenhar o ícone por cima
+      drawIcon(ctx, icon, cx, cy, BTN_SIZE);
 
       startX += BTN_SIZE + BTN_GAP;
     });
