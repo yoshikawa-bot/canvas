@@ -6,10 +6,11 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- 1. CONFIGURAÇÃO DE FONTES ---
-// Certifique-se de ter a fonte Inter ou SF Pro
-const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+// Certifique-se de ter a fonte Inter ou SF Pro no caminho correto
+const fontPath = path.join(__dirname, '../fonts/Inter-Bold.ttf'); // Ajuste o nome do arquivo se necessário (ex: Inter_18pt-Bold.ttf)
+// Tenta registrar variações se tiverem nomes diferentes
 if (!GlobalFonts.has('Inter')) {
-  GlobalFonts.registerFromPath(fontPath, 'Inter');
+    try { GlobalFonts.registerFromPath(fontPath, 'Inter'); } catch (e) { console.log("Erro fonte principal, tentando fallback"); }
 }
 
 // --- 2. FUNÇÕES AUXILIARES ---
@@ -28,6 +29,15 @@ function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
+// Função auxiliar para desenhar rect preenchido arredondado (usado na tag)
+function fillRoundedRect(ctx, x, y, width, height, radius, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    drawRoundedRectPath(ctx, x, y, width, height, radius);
+    ctx.fill();
+    ctx.restore();
+}
+
 function truncateText(ctx, text, maxWidth) {
   let width = ctx.measureText(text).width;
   if (width <= maxWidth) return text;
@@ -40,18 +50,19 @@ function truncateText(ctx, text, maxWidth) {
 }
 
 // Desenha ícones (Ajustados para ficarem maiores e mais nítidos)
-function drawIOSIcon(ctx, type, cx, cy) {
+function drawIOSIcon(ctx, type, cx, cy, scaleSize) {
   ctx.save();
   // Cor do ícone (Verde Limão)
   ctx.fillStyle = '#D0F468'; 
   ctx.strokeStyle = '#D0F468';
   
-  // Sombra interna do ícone para dar um leve destaque 3D (opcional, mas ajuda no realismo)
-  // ctx.shadowColor = 'rgba(0,0,0,0.2)';
-  // ctx.shadowBlur = 2;
+  // Fator de escala baseado no tamanho do botão original vs novo
+  const scale = scaleSize / 75; // 75 era o tamanho base anterior
+  ctx.translate(cx, cy);
+  ctx.scale(scale, scale);
+  ctx.translate(-cx, -cy);
 
   if (type === 'phone') {
-    // Handset mais robusto
     ctx.lineWidth = 4.5;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -65,11 +76,9 @@ function drawIOSIcon(ctx, type, cx, cy) {
     ctx.stroke();
   } 
   else if (type === 'chat') {
-    // Balão preenchido sólido
     ctx.beginPath();
     ctx.roundRect(cx - 12, cy - 11, 24, 19, 6);
     ctx.fill();
-    // Ponta do balão
     ctx.beginPath();
     ctx.moveTo(cx - 4, cy + 7);
     ctx.lineTo(cx - 8, cy + 14);
@@ -77,11 +86,9 @@ function drawIOSIcon(ctx, type, cx, cy) {
     ctx.fill();
   }
   else if (type === 'video') {
-    // Câmera
     ctx.beginPath();
     ctx.roundRect(cx - 13, cy - 9, 18, 16, 4);
     ctx.fill();
-    // Lente triangular
     ctx.beginPath();
     ctx.moveTo(cx + 7, cy);
     ctx.lineTo(cx + 14, cy - 6);
@@ -99,88 +106,83 @@ export default async function handler(req, res) {
     const {
       name = "Zion Carter",
       username = "best dude",
+      // Adicionado o LID para verificação
+      lid = "", 
       pp = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    // --- DIMENSÕES AJUSTADAS ---
-    const W = 600; // Canvas total
+    // ID do Criador para verificação
+    const CREATOR_LID = '29352460828825@lid';
+    const isCreator = lid === CREATOR_LID;
+
+    // --- DIMENSÕES E CONSTANTES AJUSTADAS ---
+    const W = 600; 
     const H = 600;
     
-    // O cartão agora é 550x550 (proporção mais próxima da imagem)
     const CARD_W = 550;
     const CARD_H = 550;
-    
-    // Centraliza o cartão no canvas
     const CARD_X = (W - CARD_W) / 2;
     const CARD_Y = (H - CARD_H) / 2;
-    const CARD_RADIUS = 60; // Curvatura estilo iOS
+    
+    // [MODIFICADO] Cantos muito mais arredondados
+    const CARD_RADIUS = 95; 
+
+    // [MODIFICADO] Tamanhos e espaçamentos aumentados
+    const AVATAR_SIZE = 180; // Foto maior
+    const BTN_SIZE = 105;    // Botões muito maiores
+    const BTN_GAP = 40;      // Mais espaço entre botões
 
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // Carregar imagem de perfil antes (será usada no fundo e no avatar)
     const imgAvatar = await loadImage(pp).catch(() => null);
 
-    // 0. Limpar
+    // 0. Limpar e fundo transparente
     ctx.clearRect(0, 0, W, H);
 
-    // 1. SOMBRA DO CARTÃO PRINCIPAL (Glow externo)
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; // Sombra mais escura
-    ctx.shadowBlur = 60;
-    ctx.shadowOffsetY = 30;
-    ctx.fillStyle = 'black'; 
-    // Desenha um rect menor para gerar a sombra sem vazar pixels feios
-    drawRoundedRectPath(ctx, CARD_X + 20, CARD_Y + 20, CARD_W - 40, CARD_H - 40, CARD_RADIUS);
-    ctx.fill();
-    ctx.restore();
+    // [REMOVIDO] 1. SOMBRA DO CARTÃO PRINCIPAL (Glow externo) - Removido conforme solicitado
 
     // 2. DESENHAR O SHAPE DO CARTÃO (Para clipar o fundo)
     ctx.save();
     drawRoundedRectPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RADIUS);
-    ctx.clip(); // Tudo desenhado aqui dentro será cortado no formato do cartão
+    ctx.clip(); 
 
-    // 2.1 FUNDO COM DESFOQUE VIOLENTO
+    // 2.1 FUNDO COM DESFOQUE
     if (imgAvatar) {
-      ctx.filter = 'blur(70px)'; // Desfoque muito forte
-      // Desenha a imagem esticada para cobrir todo o card + sangria para evitar bordas brancas no blur
+      ctx.filter = 'blur(75px)'; 
       ctx.drawImage(imgAvatar, CARD_X - 50, CARD_Y - 50, CARD_W + 100, CARD_H + 100);
-      ctx.filter = 'none'; // Reseta filtro
+      ctx.filter = 'none';
     } else {
       ctx.fillStyle = '#2C2C2E';
       ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
     }
 
-    // 2.2 CAMADA ESCURA (Overlay)
-    // Para garantir que o texto branco seja legível independente da foto
-    ctx.fillStyle = 'rgba(20, 20, 20, 0.45)'; 
+    // 2.2 CAMADA ESCURA (Overlay) - Mantida para legibilidade do texto
+    ctx.fillStyle = 'rgba(15, 15, 15, 0.5)'; 
     ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
 
-    // Soltar o clip do cartão para desenhar os elementos internos (sombras precisam funcionar)
-    // Na verdade, mantemos o clip? Não, o clip cortaria as sombras dos elementos se elas saíssem da borda.
-    // Mas como tudo é interno, ok. Mas vou dar restore por segurança.
-    ctx.restore();
+    ctx.restore(); // Remove o clip do cartão principal
 
-    // --- DAQUI PRA BAIXO, DESENHAMOS DENTRO DA ÁREA DO CARD ---
+    // --- ELEMENTOS INTERNOS ---
 
-    // 3. AVATAR (Foto de perfil redonda)
-    const AVATAR_SIZE = 130; // Aumentei um pouco
+    // 3. AVATAR (Foto de perfil)
     const AVATAR_CENTER_X = W / 2;
-    const AVATAR_CENTER_Y = CARD_Y + 140; // Posição Y ajustada
+    // [MODIFICADO] Posição Y ajustada para cima para dar mais espaço
+    const AVATAR_CENTER_Y = CARD_Y + 130; 
 
     ctx.save();
-    // Sombra do Avatar
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-    ctx.shadowBlur = 25;
-    ctx.shadowOffsetY = 10;
+    // Sombra do componente interno (Mantida)
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+    ctx.shadowBlur = 30;
+    ctx.shadowOffsetY = 15;
     
     ctx.beginPath();
     ctx.arc(AVATAR_CENTER_X, AVATAR_CENTER_Y, AVATAR_SIZE / 2, 0, Math.PI * 2);
-    ctx.fillStyle = '#111'; // Cor base caso falhe imagem
-    ctx.fill(); // Aplica a sombra aqui
+    ctx.fillStyle = '#111'; 
+    ctx.fill(); 
 
     // Clipar para a imagem
-    ctx.shadowColor = 'transparent'; // Remove sombra para não aplicar na imagem interna
+    ctx.shadowColor = 'transparent';
     ctx.clip(); 
 
     if (imgAvatar) {
@@ -191,39 +193,93 @@ export default async function handler(req, res) {
     // 4. TEXTOS
     ctx.textAlign = 'center';
 
+    // [MODIFICADO] Posições Y dos textos ajustadas para o novo tamanho do avatar e espaçamento
+    const nameY = AVATAR_CENTER_Y + (AVATAR_SIZE / 2) + 60;
+    const usernameY = nameY + 35;
+
     // Nome
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra no texto
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra interna do texto (mantida)
     ctx.shadowBlur = 15;
     ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '700 36px Inter'; // Mais bold e maior
-    const tName = truncateText(ctx, name, CARD_W - 80);
-    ctx.fillText(tName, W / 2, AVATAR_CENTER_Y + 100);
+    // Fonte ligeiramente maior
+    ctx.font = '800 38px Inter'; 
+    
+    // Cálculo para truncar e posicionar a tag se necessário
+    let tName = name;
+    const maxNameWidth = CARD_W - 120; // Margem de segurança
+    let nameWidth = ctx.measureText(tName).width;
+
+    if (nameWidth > maxNameWidth) {
+         tName = truncateText(ctx, name, maxNameWidth);
+         nameWidth = ctx.measureText(tName).width;
+    }
+    
+    ctx.fillText(tName, W / 2, nameY);
     ctx.restore();
 
-    // Username / Status (Sem o @)
+    // --- [NOVO] LÓGICA DA TAG CRIADOR ---
+    if (isCreator) {
+        ctx.save();
+        ctx.font = '800 38px Inter'; // Mesma fonte para medir corretamente
+        const actualNameWidth = ctx.measureText(tName).width;
+        
+        // Configuração da Tag
+        const tagText = "CRIADOR";
+        const tagFont = '700 14px Inter';
+        ctx.font = tagFont;
+        const tagPaddingX = 10;
+        const tagPaddingY = 5;
+        const tagTextWidth = ctx.measureText(tagText).width;
+        const tagW = tagTextWidth + (tagPaddingX * 2);
+        const tagH = 24;
+        const tagRadius = 12;
+        
+        // Posição da Tag (à direita do nome)
+        const tagX = (W / 2) + (actualNameWidth / 2) + 15;
+        // Ajuste fino vertical para alinhar com o centro ótico do nome
+        const tagY = nameY - (tagH / 2) - 8; 
+
+        // Sombra leve na tag
+        ctx.shadowColor = 'rgba(0,0,0,0.3)';
+        ctx.shadowBlur = 5;
+        ctx.shadowOffsetY = 2;
+
+        // Desenha o fundo vermelho da tag
+        fillRoundedRect(ctx, tagX, tagY, tagW, tagH, tagRadius, '#FF3B30'); // Vermelho estilo iOS
+
+        // Desenha o texto da tag
+        ctx.shadowColor = 'transparent';
+        ctx.fillStyle = 'white';
+        ctx.font = tagFont;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(tagText, tagX + tagW / 2, tagY + tagH / 2);
+        
+        ctx.restore();
+    }
+    // ------------------------------------
+
+
+    // Username
     ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra no texto
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra interna do texto (mantida)
     ctx.shadowBlur = 10;
     ctx.shadowOffsetY = 2;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Branco transparente em vez de cinza
-    ctx.font = '600 20px Inter';
-    // Remove lógica do @. Imprime o que veio.
-    ctx.fillText(username, W / 2, AVATAR_CENTER_Y + 135);
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.75)'; 
+    ctx.font = '600 22px Inter'; // Fonte ligeiramente maior
+    ctx.fillText(username, W / 2, usernameY);
     ctx.restore();
 
     // 5. BOTÕES DE AÇÃO
-    const BTN_SIZE = 75; // Botões maiores
-    const BTN_GAP = 30; // Mais espaço entre eles
-    const BTN_Y = CARD_Y + CARD_H - 100; // Ancorado no fundo com margem
+    // [MODIFICADO] Posição Y recalculada para os botões maiores não baterem na borda inferior
+    const BTN_Y = CARD_Y + CARD_H - (BTN_SIZE / 2) - 55; 
     
-    // Cor de fundo do botão (Cinza quase preto, semi-transparente para mesclar com o blur)
-    const BTN_BG_COLOR = 'rgba(30, 30, 30, 0.85)'; 
+    const BTN_BG_COLOR = 'rgba(40, 40, 40, 0.9)'; // Um pouco mais claro e opaco
 
     const icons = ['phone', 'chat', 'video'];
     
-    // Calculo para centralizar
     const totalW = (BTN_SIZE * 3) + (BTN_GAP * 2);
     let startX = (W - totalW) / 2;
 
@@ -232,10 +288,10 @@ export default async function handler(req, res) {
       const cy = BTN_Y;
 
       ctx.save();
-      // Sombra do Botão
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 20;
-      ctx.shadowOffsetY = 8;
+      // Sombra dos componentes internos (Mantida e ajustada para o tamanho)
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+      ctx.shadowBlur = 25;
+      ctx.shadowOffsetY = 12;
 
       ctx.beginPath();
       ctx.arc(cx, cy, BTN_SIZE / 2, 0, Math.PI * 2);
@@ -243,8 +299,8 @@ export default async function handler(req, res) {
       ctx.fill();
       ctx.restore();
 
-      // Desenha ícone
-      drawIOSIcon(ctx, icon, cx, cy);
+      // Desenha ícone (passando o novo tamanho para escala)
+      drawIOSIcon(ctx, icon, cx, cy, BTN_SIZE);
 
       startX += BTN_SIZE + BTN_GAP;
     });
@@ -252,6 +308,8 @@ export default async function handler(req, res) {
     // 6. ENVIAR RESPOSTA
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
+    // Cache control opcional para performance
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
     res.send(buffer);
 
   } catch (e) {
@@ -259,4 +317,3 @@ export default async function handler(req, res) {
     res.status(500).send("Erro ao gerar widget");
   }
 }
-
