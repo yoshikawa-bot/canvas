@@ -6,6 +6,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- 1. CONFIGURAÇÃO DE FONTES ---
+// Certifique-se de ter a fonte Inter ou SF Pro
 const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
 if (!GlobalFonts.has('Inter')) {
   GlobalFonts.registerFromPath(fontPath, 'Inter');
@@ -13,8 +14,7 @@ if (!GlobalFonts.has('Inter')) {
 
 // --- 2. FUNÇÕES AUXILIARES ---
 
-// Desenha retângulo arredondado (Squircle suave)
-function drawRoundedRect(ctx, x, y, width, height, radius) {
+function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   ctx.beginPath();
   ctx.moveTo(x + radius, y);
   ctx.lineTo(x + width - radius, y);
@@ -28,11 +28,9 @@ function drawRoundedRect(ctx, x, y, width, height, radius) {
   ctx.closePath();
 }
 
-// Função para truncar texto (adicionar "..." se for muito grande)
 function truncateText(ctx, text, maxWidth) {
   let width = ctx.measureText(text).width;
   if (width <= maxWidth) return text;
-
   let truncated = text;
   while (width > maxWidth && truncated.length > 0) {
     truncated = truncated.slice(0, -1);
@@ -41,66 +39,55 @@ function truncateText(ctx, text, maxWidth) {
   return truncated + '...';
 }
 
-// Desenha ícones do estilo iOS Call
+// Desenha ícones (Ajustados para ficarem maiores e mais nítidos)
 function drawIOSIcon(ctx, type, cx, cy) {
   ctx.save();
-  ctx.strokeStyle = '#D0F468'; // Verde Limão pastel (igual imagem)
-  ctx.fillStyle = '#D0F468';
-  ctx.lineWidth = 3;
-  ctx.lineCap = 'round';
-  ctx.lineJoin = 'round';
+  // Cor do ícone (Verde Limão)
+  ctx.fillStyle = '#D0F468'; 
+  ctx.strokeStyle = '#D0F468';
+  
+  // Sombra interna do ícone para dar um leve destaque 3D (opcional, mas ajuda no realismo)
+  // ctx.shadowColor = 'rgba(0,0,0,0.2)';
+  // ctx.shadowBlur = 2;
 
   if (type === 'phone') {
-    // Ícone de telefone (handset)
+    // Handset mais robusto
+    ctx.lineWidth = 4.5;
+    ctx.lineCap = 'round';
     ctx.beginPath();
-    // Simulação simplificada de um telefone curvado
-    ctx.arc(cx - 5, cy + 5, 4, 0, Math.PI * 2); // bojo de baixo
-    ctx.arc(cx + 8, cy - 8, 4, 0, Math.PI * 2); // bojo de cima
+    ctx.arc(cx - 6, cy + 6, 4, 0, Math.PI * 2); 
+    ctx.arc(cx + 9, cy - 9, 4, 0, Math.PI * 2); 
     ctx.fill();
     
     ctx.beginPath();
-    ctx.lineWidth = 4;
-    ctx.moveTo(cx - 4, cy + 4);
-    ctx.quadraticCurveTo(cx, cy, cx + 7, cy - 7);
+    ctx.moveTo(cx - 5, cy + 5);
+    ctx.quadraticCurveTo(cx, cy, cx + 8, cy - 8);
     ctx.stroke();
   } 
   else if (type === 'chat') {
-    // Balão de fala
+    // Balão preenchido sólido
     ctx.beginPath();
-    // O balão
-    ctx.roundRect(cx - 10, cy - 9, 20, 16, 4);
+    ctx.roundRect(cx - 12, cy - 11, 24, 19, 6);
     ctx.fill();
-    // A pontinha do balão
+    // Ponta do balão
     ctx.beginPath();
-    ctx.moveTo(cx - 2, cy + 5);
-    ctx.lineTo(cx - 5, cy + 11);
-    ctx.lineTo(cx + 4, cy + 5);
+    ctx.moveTo(cx - 4, cy + 7);
+    ctx.lineTo(cx - 8, cy + 14);
+    ctx.lineTo(cx + 5, cy + 7);
     ctx.fill();
   }
   else if (type === 'video') {
-    // Câmera de vídeo
-    // Corpo da câmera
+    // Câmera
     ctx.beginPath();
-    ctx.roundRect(cx - 10, cy - 7, 14, 14, 3);
+    ctx.roundRect(cx - 13, cy - 9, 18, 16, 4);
     ctx.fill();
-    
-    // Lente (triângulo)
+    // Lente triangular
     ctx.beginPath();
-    ctx.moveTo(cx + 6, cy);
-    ctx.lineTo(cx + 11, cy - 4);
-    ctx.lineTo(cx + 11, cy + 4);
-    ctx.closePath();
+    ctx.moveTo(cx + 7, cy);
+    ctx.lineTo(cx + 14, cy - 6);
+    ctx.lineTo(cx + 14, cy + 6);
     ctx.fill();
-    
-    // Linha vertical interna para detalhe
-    ctx.beginPath();
-    ctx.strokeStyle = '#222'; // detalhe escuro dentro do icone
-    ctx.lineWidth = 2;
-    ctx.moveTo(cx - 3, cy - 3);
-    ctx.lineTo(cx - 3, cy + 3);
-    ctx.stroke();
   }
-
   ctx.restore();
 }
 
@@ -111,109 +98,158 @@ export default async function handler(req, res) {
   try {
     const {
       name = "Zion Carter",
-      username = "best dude", // Aqui virá o @ID
+      username = "best dude",
       pp = "https://i.pinimg.com/736x/d6/d3/9f/d6d39f60db35a815a0c8b6b060f7813a.jpg"
     } = req.method === "POST" ? req.body : req.query;
 
-    // Dimensões do Canvas (Maior para ter transparência em volta)
-    const W = 600;
+    // --- DIMENSÕES AJUSTADAS ---
+    const W = 600; // Canvas total
     const H = 600;
     
-    // Dimensões do Widget (O cartão em si)
-    const CARD_W = 400;
-    const CARD_H = 400;
-    const CARD_X = (W - CARD_W) / 2; // Centralizado
+    // O cartão agora é 550x550 (proporção mais próxima da imagem)
+    const CARD_W = 550;
+    const CARD_H = 550;
+    
+    // Centraliza o cartão no canvas
+    const CARD_X = (W - CARD_W) / 2;
     const CARD_Y = (H - CARD_H) / 2;
-    const CARD_RADIUS = 55; // Bem arredondado
+    const CARD_RADIUS = 60; // Curvatura estilo iOS
 
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // 0. Limpar Canvas (Garantir transparência total no fundo)
+    // Carregar imagem de perfil antes (será usada no fundo e no avatar)
+    const imgAvatar = await loadImage(pp).catch(() => null);
+
+    // 0. Limpar
     ctx.clearRect(0, 0, W, H);
 
-    // 1. DESENHAR O SHADOW (Profundidade)
+    // 1. SOMBRA DO CARTÃO PRINCIPAL (Glow externo)
     ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 20;
-    ctx.fillStyle = 'rgba(0,0,0,0)'; // fill invisivel só para gerar sombra
-    drawRoundedRect(ctx, CARD_X + 10, CARD_Y + 10, CARD_W - 20, CARD_H - 20, CARD_RADIUS);
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)'; // Sombra mais escura
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetY = 30;
+    ctx.fillStyle = 'black'; 
+    // Desenha um rect menor para gerar a sombra sem vazar pixels feios
+    drawRoundedRectPath(ctx, CARD_X + 20, CARD_Y + 20, CARD_W - 40, CARD_H - 40, CARD_RADIUS);
     ctx.fill();
     ctx.restore();
 
-    // 2. FUNDO DO WIDGET (Cinza Escuro estilo iOS)
+    // 2. DESENHAR O SHAPE DO CARTÃO (Para clipar o fundo)
     ctx.save();
-    ctx.fillStyle = '#2C2C2E'; // Cor dark grey do iOS
-    drawRoundedRect(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RADIUS);
-    ctx.fill();
-    ctx.restore();
+    drawRoundedRectPath(ctx, CARD_X, CARD_Y, CARD_W, CARD_H, CARD_RADIUS);
+    ctx.clip(); // Tudo desenhado aqui dentro será cortado no formato do cartão
 
-    // 3. AVATAR DO USUÁRIO
-    const AVATAR_SIZE = 110;
-    const AVATAR_X = W / 2;
-    const AVATAR_Y = CARD_Y + 80; // Posição vertical do centro do avatar
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(AVATAR_X, AVATAR_Y, AVATAR_SIZE / 2, 0, Math.PI * 2);
-    ctx.clip();
-    
-    const imgAvatar = await loadImage(pp).catch(() => null);
+    // 2.1 FUNDO COM DESFOQUE VIOLENTO
     if (imgAvatar) {
-      ctx.drawImage(imgAvatar, AVATAR_X - AVATAR_SIZE/2, AVATAR_Y - AVATAR_SIZE/2, AVATAR_SIZE, AVATAR_SIZE);
+      ctx.filter = 'blur(70px)'; // Desfoque muito forte
+      // Desenha a imagem esticada para cobrir todo o card + sangria para evitar bordas brancas no blur
+      ctx.drawImage(imgAvatar, CARD_X - 50, CARD_Y - 50, CARD_W + 100, CARD_H + 100);
+      ctx.filter = 'none'; // Reseta filtro
     } else {
-      ctx.fillStyle = '#555';
-      ctx.fillRect(AVATAR_X - AVATAR_SIZE/2, AVATAR_Y - AVATAR_SIZE/2, AVATAR_SIZE, AVATAR_SIZE);
+      ctx.fillStyle = '#2C2C2E';
+      ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
+    }
+
+    // 2.2 CAMADA ESCURA (Overlay)
+    // Para garantir que o texto branco seja legível independente da foto
+    ctx.fillStyle = 'rgba(20, 20, 20, 0.45)'; 
+    ctx.fillRect(CARD_X, CARD_Y, CARD_W, CARD_H);
+
+    // Soltar o clip do cartão para desenhar os elementos internos (sombras precisam funcionar)
+    // Na verdade, mantemos o clip? Não, o clip cortaria as sombras dos elementos se elas saíssem da borda.
+    // Mas como tudo é interno, ok. Mas vou dar restore por segurança.
+    ctx.restore();
+
+    // --- DAQUI PRA BAIXO, DESENHAMOS DENTRO DA ÁREA DO CARD ---
+
+    // 3. AVATAR (Foto de perfil redonda)
+    const AVATAR_SIZE = 130; // Aumentei um pouco
+    const AVATAR_CENTER_X = W / 2;
+    const AVATAR_CENTER_Y = CARD_Y + 140; // Posição Y ajustada
+
+    ctx.save();
+    // Sombra do Avatar
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+    ctx.shadowBlur = 25;
+    ctx.shadowOffsetY = 10;
+    
+    ctx.beginPath();
+    ctx.arc(AVATAR_CENTER_X, AVATAR_CENTER_Y, AVATAR_SIZE / 2, 0, Math.PI * 2);
+    ctx.fillStyle = '#111'; // Cor base caso falhe imagem
+    ctx.fill(); // Aplica a sombra aqui
+
+    // Clipar para a imagem
+    ctx.shadowColor = 'transparent'; // Remove sombra para não aplicar na imagem interna
+    ctx.clip(); 
+
+    if (imgAvatar) {
+      ctx.drawImage(imgAvatar, AVATAR_CENTER_X - AVATAR_SIZE/2, AVATAR_CENTER_Y - AVATAR_SIZE/2, AVATAR_SIZE, AVATAR_SIZE);
     }
     ctx.restore();
 
-    // 4. TEXTOS (Nome e ID)
+    // 4. TEXTOS
     ctx.textAlign = 'center';
-    
-    // Nome (Truncado)
+
+    // Nome
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra no texto
+    ctx.shadowBlur = 15;
+    ctx.shadowOffsetY = 4;
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '32px Inter'; // Tamanho ajustado
-    const truncatedName = truncateText(ctx, name, CARD_W - 60); // Padding de 30px cada lado
-    ctx.fillText(truncatedName, W / 2, AVATAR_Y + 85);
+    ctx.font = '700 36px Inter'; // Mais bold e maior
+    const tName = truncateText(ctx, name, CARD_W - 80);
+    ctx.fillText(tName, W / 2, AVATAR_CENTER_Y + 100);
+    ctx.restore();
 
-    // Username / ID (Cinza)
-    ctx.fillStyle = 'rgba(235, 235, 245, 0.6)'; // Cinza claro transparente
-    ctx.font = '18px Inter';
-    // Adiciona o @ se não tiver
-    const displayHandle = username.startsWith('@') ? username : `@${username}`;
-    ctx.fillText(displayHandle, W / 2, AVATAR_Y + 115);
+    // Username / Status (Sem o @)
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.8)'; // Sombra no texto
+    ctx.shadowBlur = 10;
+    ctx.shadowOffsetY = 2;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)'; // Branco transparente em vez de cinza
+    ctx.font = '600 20px Inter';
+    // Remove lógica do @. Imprime o que veio.
+    ctx.fillText(username, W / 2, AVATAR_CENTER_Y + 135);
+    ctx.restore();
 
-    // 5. BOTÕES DE AÇÃO (Rodapé)
-    const BTN_SIZE = 65;
-    const BTN_GAP = 25;
-    const BTN_Y = CARD_Y + CARD_H - 70; // Ancorado na parte de baixo
-    const BTN_BG_COLOR = '#1C1C1E'; // Quase preto
-
-    // Calcular posições X para centralizar o grupo de 3 botões
-    const totalBtnWidth = (BTN_SIZE * 3) + (BTN_GAP * 2);
-    let startX = (W - totalBtnWidth) / 2;
+    // 5. BOTÕES DE AÇÃO
+    const BTN_SIZE = 75; // Botões maiores
+    const BTN_GAP = 30; // Mais espaço entre eles
+    const BTN_Y = CARD_Y + CARD_H - 100; // Ancorado no fundo com margem
+    
+    // Cor de fundo do botão (Cinza quase preto, semi-transparente para mesclar com o blur)
+    const BTN_BG_COLOR = 'rgba(30, 30, 30, 0.85)'; 
 
     const icons = ['phone', 'chat', 'video'];
+    
+    // Calculo para centralizar
+    const totalW = (BTN_SIZE * 3) + (BTN_GAP * 2);
+    let startX = (W - totalW) / 2;
 
-    icons.forEach((icon, index) => {
+    icons.forEach((icon) => {
       const cx = startX + (BTN_SIZE / 2);
       const cy = BTN_Y;
 
-      // Círculo de fundo escuro
+      ctx.save();
+      // Sombra do Botão
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 20;
+      ctx.shadowOffsetY = 8;
+
       ctx.beginPath();
       ctx.arc(cx, cy, BTN_SIZE / 2, 0, Math.PI * 2);
       ctx.fillStyle = BTN_BG_COLOR;
       ctx.fill();
+      ctx.restore();
 
-      // Ícone geométrico verde
+      // Desenha ícone
       drawIOSIcon(ctx, icon, cx, cy);
 
-      // Avança X
       startX += BTN_SIZE + BTN_GAP;
     });
 
-    // 6. OUTPUT
+    // 6. ENVIAR RESPOSTA
     const buffer = await canvas.encode('png');
     res.setHeader("Content-Type", "image/png");
     res.send(buffer);
@@ -223,3 +259,4 @@ export default async function handler(req, res) {
     res.status(500).send("Erro ao gerar widget");
   }
 }
+
