@@ -35,8 +35,8 @@ export default async function handler(req, res) {
     const BG_ZOOM = 1.0; 
 
     // URLs atualizadas conforme solicitado
-    const dayBgUrl = 'https://yoshikawa-bot.github.io/cache/images/ae96713a.jpg';
-    const nightBgUrl = 'https://yoshikawa-bot.github.io/cache/images/232dfce8.jpg';
+    const dayBgUrl = 'https://yoshikawa-bot.github.io/cache/images/944ed05d.jpg';
+    const nightBgUrl = 'https://yoshikawa-bot.github.io/cache/images/3f05f765.jpg';
 
     // Captura os dados
     const {
