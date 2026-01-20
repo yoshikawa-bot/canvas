@@ -104,6 +104,11 @@ export default async function handler(req, res) {
     ctx.fillText(timeStr, W - PADDING, topY);
 
     // --- TEXTOS INFERIORES (Cidade e Graus) ---
+    // Ajuste de cor apenas para os textos inferiores quando for dia (fundo claro)
+    if (theme === "day") {
+      ctx.fillStyle = '#121212'; // Tom escuro, mas não preto absoluto (#000000)
+    }
+
     const bottomY = H - 100;
 
     // Lado Direito: Graus (Renderizamos primeiro para garantir espaço se necessário, mas mantendo a ordem visual)
