@@ -155,7 +155,7 @@ export default async function handler(req, res) {
     const {
       channel = "Terence Howard",
       handle = "@kawalyansky",
-      thumbnail = "https://yoshikawa-bot.github.io/cache/images/47ab06bd.jpg",
+      thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
@@ -166,13 +166,20 @@ export default async function handler(req, res) {
     ctx.translate(margin, margin);
     ctx.scale(scaleFactor, scaleFactor);
 
-    let img = null;
+    let bgImg = null;
     try {
         if(thumbnail && thumbnail.startsWith('http')) {
              const response = await fetch(thumbnail);
              const buf = Buffer.from(await response.arrayBuffer());
-             img = await loadImage(buf);
+             bgImg = await loadImage(buf);
         }
+    } catch (e) { }
+
+    let avatarImg = null;
+    try {
+        const response = await fetch('https://yoshikawa-bot.github.io/cache/images/47ab06bd.jpg');
+        const buf = Buffer.from(await response.arrayBuffer());
+        avatarImg = await loadImage(buf);
     } catch (e) { }
 
     ctx.beginPath();
@@ -180,13 +187,13 @@ export default async function handler(req, res) {
     ctx.clip();
 
     let bgRect = { x: 0, y: 0, w: W, h: H };
-    if (img) {
-        const scale = Math.max(W / img.width, H / img.height) * BG_ZOOM;
-        bgRect.w = img.width * scale;
-        bgRect.h = img.height * scale;
+    if (bgImg) {
+        const scale = Math.max(W / bgImg.width, H / bgImg.height) * BG_ZOOM;
+        bgRect.w = bgImg.width * scale;
+        bgRect.h = bgImg.height * scale;
         bgRect.x = (W - bgRect.w) / 2;
         bgRect.y = (H - bgRect.h) / 2;
-        ctx.drawImage(img, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+        ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
     }
 
     const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -200,14 +207,14 @@ export default async function handler(req, res) {
     const pillX = PADDING, pillY = PADDING;
     const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
+    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, bgImg, bgRect);
     
     const avSize = 110;
     ctx.save();
     ctx.beginPath();
     ctx.arc(pillX + 20 + avSize/2, pillY + headerH/2, avSize/2, 0, Math.PI*2);
     ctx.clip();
-    if(img) ctx.drawImage(img, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
+    if(avatarImg) ctx.drawImage(avatarImg, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
     ctx.restore();
 
     ctx.textAlign = 'left';
@@ -235,10 +242,10 @@ export default async function handler(req, res) {
     const shareX = likeX - headerH - 10;
     const topIconSize = 52; 
 
-    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
+    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, bgImg, bgRect);
     drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
 
-    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
+    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, bgImg, bgRect);
     drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
     const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
@@ -261,9 +268,9 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
-    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
+    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
 
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
