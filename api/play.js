@@ -12,9 +12,6 @@ try {
   }
 } catch (e) { }
 
-// --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
-
-// FUNÇÃO CORAÇÃO (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -28,7 +25,6 @@ function drawHeart(ctx, x, y, size) {
   ctx.restore();
 }
 
-// FUNÇÃO COMPARTILHAR
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -66,8 +62,6 @@ function drawShareIcon(ctx, x, y, size) {
   ctx.restore();
 }
 
-// Função genérica para efeito de vidro em Círculos
-// Usada tanto nos botões superiores quanto nos inferiores
 function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -86,7 +80,6 @@ function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.restore();
 }
 
-// Função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
 function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -138,24 +131,19 @@ function drawSkipIcon(ctx, x, y, size, direction) {
   ctx.restore();
 }
 
-// --- HANDLER PRINCIPAL ---
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // --- CONSTANTES DE AJUSTE "ADESIVO" ---
     const DESIGN_RES = 1080; 
     const FINAL_CANVAS_SIZE = 1080; 
     const STICKER_SCALE = 0.92; 
 
-    // --- CÁLCULOS DE POSICIONAMENTO ---
     const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
     const margin = (FINAL_CANVAS_SIZE - stickerActualSize) / 2;
     const scaleFactor = stickerActualSize / DESIGN_RES;
 
-    // --- MEDIDAS DE UI ---
     const W = DESIGN_RES, H = DESIGN_RES;
     const PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
@@ -167,14 +155,13 @@ export default async function handler(req, res) {
     const {
       channel = "Terence Howard",
       handle = "@kawalyansky",
-      thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
+      thumbnail = "https://yoshikawa-bot.github.io/cache/images/47ab06bd.jpg",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
-    // --- INÍCIO DA ÁREA DO "ADESIVO" ---
     ctx.save();
     ctx.translate(margin, margin);
     ctx.scale(scaleFactor, scaleFactor);
@@ -188,7 +175,6 @@ export default async function handler(req, res) {
         }
     } catch (e) { }
 
-    // BG Clipping
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
@@ -210,15 +196,12 @@ export default async function handler(req, res) {
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,W,H);
 
-    // --- HEADER ---
     const headerH = 150;
     const pillX = PADDING, pillY = PADDING;
     const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    // Pílula com efeito de vidro
     drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
     
-    // Avatar circular
     const avSize = 110;
     ctx.save();
     ctx.beginPath();
@@ -227,17 +210,14 @@ export default async function handler(req, res) {
     if(img) ctx.drawImage(img, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
     ctx.restore();
 
-    // -- ATUALIZADO: Lógica de texto com "..." --
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 42px Inter, sans-serif';
 
     const textStartX = pillX + avSize + 50;
-    // Calcula a largura máxima permitida para o texto (Largura da pílula - espaço do avatar - margem direita)
     const maxTextWidth = pillWidth - (avSize + 50) - 20; 
     let displayChannel = channel;
 
-    // Se o texto for maior que o espaço, trunca e adiciona "..."
     if (ctx.measureText(displayChannel).width > maxTextWidth) {
       while (ctx.measureText(displayChannel + '...').width > maxTextWidth && displayChannel.length > 0) {
         displayChannel = displayChannel.slice(0, -1);
@@ -251,7 +231,6 @@ export default async function handler(req, res) {
     ctx.font = '400 32px Inter, sans-serif';
     ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
 
-    // --- BOTÕES DE TOPO (Heart e Share) ---
     const likeX = W - PADDING - headerH/2;
     const shareX = likeX - headerH - 10;
     const topIconSize = 52; 
@@ -300,4 +279,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send("Erro na geração");
   }
-      }
+}
