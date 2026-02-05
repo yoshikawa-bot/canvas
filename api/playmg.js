@@ -12,9 +12,6 @@ try {
   }
 } catch (e) { }
 
-// --- FUNÇÕES DE DESENHO VETORIAL (ÍCONES) ---
-
-// FUNÇÃO CORAÇÃO (Formato Emoji ❤️)
 function drawHeart(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -28,7 +25,6 @@ function drawHeart(ctx, x, y, size) {
   ctx.restore();
 }
 
-// FUNÇÃO COMPARTILHAR
 function drawShareIcon(ctx, x, y, size) {
   ctx.save();
   ctx.translate(x, y);
@@ -66,8 +62,6 @@ function drawShareIcon(ctx, x, y, size) {
   ctx.restore();
 }
 
-// Função genérica para efeito de vidro em Círculos
-// Usada tanto nos botões superiores quanto nos inferiores
 function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -86,7 +80,6 @@ function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
   ctx.restore();
 }
 
-// Função genérica para efeito de vidro em Retângulos Arredondados (Pílula)
 function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
   ctx.save();
   ctx.beginPath();
@@ -138,24 +131,19 @@ function drawSkipIcon(ctx, x, y, size, direction) {
   ctx.restore();
 }
 
-// --- HANDLER PRINCIPAL ---
-
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // --- CONSTANTES DE AJUSTE "ADESIVO" ---
     const DESIGN_RES = 1080; 
     const FINAL_CANVAS_SIZE = 1080; 
     const STICKER_SCALE = 0.92; 
 
-    // --- CÁLCULOS DE POSICIONAMENTO ---
     const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
     const margin = (FINAL_CANVAS_SIZE - stickerActualSize) / 2;
     const scaleFactor = stickerActualSize / DESIGN_RES;
 
-    // --- MEDIDAS DE UI ---
     const W = DESIGN_RES, H = DESIGN_RES;
     const PADDING = 90, CARD_RADIUS = 120;
     const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
@@ -167,40 +155,45 @@ export default async function handler(req, res) {
     const {
       channel = "Terence Howard",
       handle = "@Mgzinho Modz",
-      thumbnail = "https://yoshikawa-bot.github.io/cache/images/562010c7.jpg",
+      thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
       totalTime = "2:13"
     } = req.method === "POST" ? req.body : req.query;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
-    // --- INÍCIO DA ÁREA DO "ADESIVO" ---
     ctx.save();
     ctx.translate(margin, margin);
     ctx.scale(scaleFactor, scaleFactor);
 
-    let img = null;
+    let bgImg = null;
     try {
         if(thumbnail && thumbnail.startsWith('http')) {
              const response = await fetch(thumbnail);
              const buf = Buffer.from(await response.arrayBuffer());
-             img = await loadImage(buf);
+             bgImg = await loadImage(buf);
         }
     } catch (e) { }
 
-    // BG Clipping
+    let avatarImg = null;
+    try {
+        const response = await fetch('https://yoshikawa-bot.github.io/cache/images/562010c7.jpg');
+        const buf = Buffer.from(await response.arrayBuffer());
+        avatarImg = await loadImage(buf);
+    } catch (e) { }
+
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
 
     let bgRect = { x: 0, y: 0, w: W, h: H };
-    if (img) {
-        const scale = Math.max(W / img.width, H / img.height) * BG_ZOOM;
-        bgRect.w = img.width * scale;
-        bgRect.h = img.height * scale;
+    if (bgImg) {
+        const scale = Math.max(W / bgImg.width, H / bgImg.height) * BG_ZOOM;
+        bgRect.w = bgImg.width * scale;
+        bgRect.h = bgImg.height * scale;
         bgRect.x = (W - bgRect.w) / 2;
         bgRect.y = (H - bgRect.h) / 2;
-        ctx.drawImage(img, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+        ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
     }
 
     const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -210,34 +203,28 @@ export default async function handler(req, res) {
     ctx.fillStyle = grad;
     ctx.fillRect(0,0,W,H);
 
-    // --- HEADER ---
     const headerH = 150;
     const pillX = PADDING, pillY = PADDING;
     const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
 
-    // Pílula com efeito de vidro
-    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, img, bgRect);
+    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, bgImg, bgRect);
     
-    // Avatar circular
     const avSize = 110;
     ctx.save();
     ctx.beginPath();
     ctx.arc(pillX + 20 + avSize/2, pillY + headerH/2, avSize/2, 0, Math.PI*2);
     ctx.clip();
-    if(img) ctx.drawImage(img, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
+    if(avatarImg) ctx.drawImage(avatarImg, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
     ctx.restore();
 
-    // -- ATUALIZADO: Lógica de texto com "..." --
     ctx.textAlign = 'left';
     ctx.fillStyle = '#fff';
     ctx.font = 'bold 42px Inter, sans-serif';
 
     const textStartX = pillX + avSize + 50;
-    // Calcula a largura máxima permitida para o texto (Largura da pílula - espaço do avatar - margem direita)
     const maxTextWidth = pillWidth - (avSize + 50) - 20; 
     let displayChannel = channel;
 
-    // Se o texto for maior que o espaço, trunca e adiciona "..."
     if (ctx.measureText(displayChannel).width > maxTextWidth) {
       while (ctx.measureText(displayChannel + '...').width > maxTextWidth && displayChannel.length > 0) {
         displayChannel = displayChannel.slice(0, -1);
@@ -251,15 +238,14 @@ export default async function handler(req, res) {
     ctx.font = '400 32px Inter, sans-serif';
     ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
 
-    // --- BOTÕES DE TOPO (Heart e Share) ---
     const likeX = W - PADDING - headerH/2;
     const shareX = likeX - headerH - 10;
     const topIconSize = 52; 
 
-    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, img, bgRect);
+    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, bgImg, bgRect);
     drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
 
-    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, img, bgRect);
+    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, bgImg, bgRect);
     drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
 
     const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
@@ -282,9 +268,9 @@ export default async function handler(req, res) {
     const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
     const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
 
-    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, img, bgRect);
-    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, img, bgRect);
+    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
 
     drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
     drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
