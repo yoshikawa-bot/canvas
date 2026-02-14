@@ -1,302 +1,226 @@
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
-import { writeFileSync } from 'fs';
 import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-// --- REGISTRO DE FONTE ---
-const fontPath = path.join(__dirname, 'fonts/Inter-Bold.ttf'); 
-if (!GlobalFonts.has('Inter')) {
-  try {
-    GlobalFonts.registerFromPath(fontPath, 'Inter');
-  } catch (e) {
-    console.log('Fonte Inter não encontrada, usando fonte padrão');
-  }
-}
-
-// --- FUNÇÕES AUXILIARES DE DESENHO ---
-
-function drawRoundedRectPath(ctx, x, y, width, height, radius) {
+// Função auxiliar para desenhar retângulos arredondados (pílulas do menu)
+function drawRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
   ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.roundRect(x, y, width, height, radius);
+  ctx.fillStyle = fillStyle;
+  ctx.fill();
   ctx.closePath();
 }
 
-function fillRoundedRect(ctx, x, y, width, height, radius, color) {
-  ctx.save();
-  ctx.fillStyle = color;
-  drawRoundedRectPath(ctx, x, y, width, height, radius);
-  ctx.fill();
-  ctx.restore();
-}
-
+// Função auxiliar para desenhar o ícone de coração (decoração)
 function drawHeart(ctx, x, y, size, color) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = color;
   ctx.beginPath();
-  const topCurveHeight = size * 0.3;
-  ctx.moveTo(0, topCurveHeight);
-  ctx.bezierCurveTo(0, 0, -size / 2, 0, -size / 2, topCurveHeight);
-  ctx.bezierCurveTo(-size / 2, (size + topCurveHeight) / 2, 0, size, 0, size);
-  ctx.bezierCurveTo(0, size, size / 2, (size + topCurveHeight) / 2, size / 2, topCurveHeight);
-  ctx.bezierCurveTo(size / 2, 0, 0, 0, 0, topCurveHeight);
+  const s = size; 
+  ctx.moveTo(0, s * 0.3); 
+  ctx.bezierCurveTo(-s * 0.5, -s * 0.3, -s * 1, s * 0.2, 0, s * 1);
+  ctx.bezierCurveTo(s * 1, s * 0.2, s * 0.5, -s * 0.3, 0, s * 0.3);
   ctx.fill();
   ctx.restore();
 }
 
-function drawTranslateIcon(ctx, x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  
-  // Fundo do ícone
-  ctx.fillStyle = '#ff99cc';
-  ctx.fillRect(-size/2, -size/2, size * 1.5, size);
-  
-  // Símbolo "A"
-  ctx.fillStyle = '#ffffff';
-  ctx.font = `bold ${size}px Arial`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText("A", 0, 0);
-  
-  // Símbolo atrás
-  ctx.font = `${size * 0.6}px Arial`;
-  ctx.globalAlpha = 0.8;
-  ctx.fillText("文", size * 0.5, -size * 0.2);
-  
-  ctx.restore();
+// Função para desenhar ícone de tradução/letra (o 'A' com kanji)
+function drawLangIcon(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.strokeStyle = '#ecaebd'; // Rosa claro
+    ctx.lineWidth = 2;
+    ctx.font = `bold ${size}px Arial`;
+    ctx.fillStyle = '#ecaebd';
+    ctx.fillText("A", 0, size);
+    ctx.font = `${size * 0.6}px Arial`;
+    ctx.fillText("あ", size * 0.6, size * 0.6);
+    ctx.restore();
 }
 
-async function generateImage() {
+export default async function handler(req, res) {
+  // Configuração para simular ambiente de API (se necessário)
+  if (res && typeof res.setHeader === 'function') {
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader("Content-Type", "image/png");
+  }
+
   try {
-    console.log('Iniciando geração da imagem...');
-    
-    // 1. CONFIGURAÇÃO DO CANVAS
-    const W = 1000;
-    const H = 650;
+    // 1. Configuração do Canvas (Landscape 16:10 approx para caber a UI)
+    const W = 1200;
+    const H = 780;
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
+    // Registrar fonte (Fallback para Arial se Inter não existir, mas idealmente use Inter Bold)
+    // O sistema usará a fonte padrão do sistema se não carregar, configuramos 'sans-serif' como fallback visual.
+    const fontPrimary = 'sans-serif'; 
+
+    // --- CARREGAMENTO DE IMAGENS ---
+    // Usamos as URLs fornecidas
     const bgUrl = "https://yoshikawa-bot.github.io/cache/images/d998aed2.jpg";
     const charUrl = "https://yoshikawa-bot.github.io/cache/images/717371a8.png";
     const logoUrl = "https://yoshikawa-bot.github.io/cache/images/4b8be4b4.png";
 
-    console.log('Carregando imagens...');
     const [bgImage, charImage, logoImage] = await Promise.all([
-      loadImage(bgUrl),
-      loadImage(charUrl),
-      loadImage(logoUrl)
+        loadImage(bgUrl),
+        loadImage(charUrl),
+        loadImage(logoUrl)
     ]);
-    console.log('Imagens carregadas com sucesso!');
 
-    // 2. FUNDO E BASE
-    const cardRadius = 50;
-    
-    // Clip com bordas arredondadas
-    ctx.save();
-    drawRoundedRectPath(ctx, 0, 0, W, H, cardRadius);
-    ctx.clip();
-
-    // Desenhar fundo
+    // 2. Fundo (Background)
+    // Desenha a imagem de fundo preenchendo tudo
     const bgScale = Math.max(W / bgImage.width, H / bgImage.height);
     const bgW = bgImage.width * bgScale;
     const bgH = bgImage.height * bgScale;
-    const bgX = (W - bgW) / 2;
-    const bgY = (H - bgH) / 2;
-    ctx.drawImage(bgImage, bgX, bgY, bgW, bgH);
+    ctx.drawImage(bgImage, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH);
 
-    // 3. CAMADA ESCURA - Garantir contraste
-    const gradient = ctx.createLinearGradient(0, 0, W, 0);
-    gradient.addColorStop(0, 'rgba(10, 0, 20, 0.98)');
-    gradient.addColorStop(0.6, 'rgba(20, 0, 30, 0.92)');
-    gradient.addColorStop(1, 'rgba(30, 0, 40, 0.6)');
+    // 3. Overlay Escuro (Atmosfera Roxa/Preta)
+    // A imagem original é bem escura, aplicamos um gradiente forte
+    const gradient = ctx.createLinearGradient(0, 0, 0, H);
+    gradient.addColorStop(0, 'rgba(20, 0, 20, 0.85)');   // Topo escuro
+    gradient.addColorStop(0.5, 'rgba(30, 0, 40, 0.85)'); // Meio
+    gradient.addColorStop(1, 'rgba(20, 0, 30, 0.95)');   // Base quase preta
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, W, H);
 
-    // 4. PERSONAGEM (REDUZIDA)
-    const charScale = 0.45;
-    const cW = charImage.width * charScale;
-    const cH = charImage.height * charScale;
-    const cX = W - cW + 20;
-    const cY = H - cH + 30;
-    ctx.drawImage(charImage, cX, cY, cW, cH);
+    // Vignette (bordas mais escuras)
+    const radialGrad = ctx.createRadialGradient(W/2, H/2, H/3, W/2, H/2, W);
+    radialGrad.addColorStop(0, 'rgba(0,0,0,0)');
+    radialGrad.addColorStop(1, 'rgba(0,0,0,0.8)');
+    ctx.fillStyle = radialGrad;
+    ctx.fillRect(0,0,W,H);
 
-    ctx.restore();
+    // 4. Personagem (Lado Direito)
+    // Posicionamento preciso baseado no olhar da personagem na print
+    const charScale = 1.1; // Um pouco maior que o original para dar close
+    const charW = charImage.width * charScale;
+    const charH = charImage.height * charScale;
+    const charX = W - charW + 80; // Encostado na direita
+    const charY = H - charH + 50; // Alinhado em baixo
+    ctx.drawImage(charImage, charX, charY, charW, charH);
 
-    // --- ÁREA DE INTERFACE ---
-    const startX = 60;
-    let cursorY = 60;
+    // 5. Interface - Lado Esquerdo
+    const marginLeft = 80;
 
-    // 5. CABEÇALHO
-    
-    // Texto "VERSION 7.0"
-    ctx.font = 'bold 18px Arial';
-    ctx.fillStyle = '#ff3399';
+    // --- Header / Logo ---
+    // "VERSION 7.0"
+    ctx.fillStyle = '#ff66aa'; // Rosa neon forte
+    ctx.font = `bold 14px ${fontPrimary}`;
     ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    
-    // Adicionar outline para maior visibilidade
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
-    ctx.strokeText('VERSION 7.0', startX, cursorY);
-    ctx.fillText('VERSION 7.0', startX, cursorY);
-    
-    cursorY += 25;
+    ctx.fillText('VERSION 7.0', marginLeft, 85);
 
-    // Logo MAIOR
-    const logoTargetH = 120;
-    const logoRatio = logoImage.width / logoImage.height;
-    const logoTargetW = logoTargetH * logoRatio;
+    // Logo Chinês
+    const logoScale = 0.8;
+    const logoW = logoImage.width * logoScale;
+    const logoH = logoImage.height * logoScale;
+    ctx.drawImage(logoImage, marginLeft - 10, 95, logoW, logoH);
+
+    // "MAIN MENU" e Corações
+    const menuStartY = 240;
     
-    // Adicionar fundo branco atrás do logo para visibilidade
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    ctx.fillRect(startX - 10, cursorY - 5, logoTargetW + 20, logoTargetH + 10);
-    
-    ctx.drawImage(logoImage, startX, cursorY, logoTargetW, logoTargetH);
-    
-    cursorY += logoTargetH + 50;
+    // Ícone de corações decorativos à esquerda do título
+    drawHeart(ctx, marginLeft - 25, menuStartY - 15, 12, '#ffccdd');
+    drawHeart(ctx, marginLeft - 10, menuStartY - 5, 8, '#ffccdd');
 
-    // 6. TÍTULO "MAIN MENU"
-    drawHeart(ctx, startX + 5, cursorY, 18, '#ff3399');
-    drawHeart(ctx, startX + 25, cursorY + 8, 14, '#ff66bb');
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = `900 24px ${fontPrimary}`; // Extra Bold
+    ctx.fillText('MAIN MENU', marginLeft, menuStartY);
 
-    ctx.font = 'bold 32px Arial';
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 4;
-    ctx.strokeText('MAIN MENU', startX + 50, cursorY);
-    ctx.fillText('MAIN MENU', startX + 50, cursorY);
-
-    cursorY += 50;
-
-    // 7. LISTA DE MENUS
-    const menus = [
-      "MENU DOWNLOADS",
-      "MENU VIP",
-      "MENU NETFLIX",
-      "MENU BRINCADEIRAS",
-      "MENU ADM",
-      "INFO BOT"
+    // --- Lista de Botões (Menu) ---
+    const buttons = [
+        "MENU DOWNLOADS",
+        "MENU VIP",
+        "MENU NETFLIX",
+        "MENU BRINCADEIRAS",
+        "MENU ADM",
+        "INFO BOT"
     ];
 
-    const btnHeight = 45;
-    const btnWidth = 360;
-    const btnGap = 14;
-    const btnColor = 'rgba(100, 50, 130, 0.85)';
+    const btnH = 42;
+    const btnW = 380;
+    const btnGap = 12;
+    let currentY = menuStartY + 30;
 
-    ctx.font = 'bold 19px Arial';
+    ctx.font = `bold 18px ${fontPrimary}`;
+    ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
 
-    menus.forEach(menuText => {
-      // Fundo do botão com borda
-      fillRoundedRect(ctx, startX, cursorY, btnWidth, btnHeight, 10, btnColor);
-      
-      // Borda para destaque
-      ctx.strokeStyle = '#ff3399';
-      ctx.lineWidth = 2;
-      drawRoundedRectPath(ctx, startX, cursorY, btnWidth, btnHeight, 10);
-      ctx.stroke();
-      
-      // Texto do botão com outline
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 3;
-      ctx.textAlign = 'left';
-      ctx.strokeText(menuText, startX + 20, cursorY + (btnHeight / 2));
-      ctx.fillText(menuText, startX + 20, cursorY + (btnHeight / 2));
-
-      cursorY += btnHeight + btnGap;
+    buttons.forEach((text) => {
+        // Fundo do botão (Roxo translúcido)
+        drawRoundedRect(ctx, marginLeft, currentY, btnW, btnH, 10, 'rgba(80, 50, 90, 0.45)');
+        
+        // Texto do botão
+        ctx.fillStyle = '#ebd5eb'; // Lilás bem claro, quase branco
+        ctx.fillText(text, marginLeft + 20, currentY + btnH/2 + 2); // +2 ajuste visual da fonte
+        
+        currentY += btnH + btnGap;
     });
 
-    cursorY += 20;
+    // --- Seção de Informações (Footer) ---
+    // Estrutura: Label (Rosa/Lilás) ...... Valor (Branco/Rosa Claro)
+    const infoStartY = currentY + 20;
+    const infoLineH = 32;
+    const infoLabelX = marginLeft;
+    const infoValueX = marginLeft + 370; // Alinhado à direita da caixa do menu
 
-    // 8. METADADOS
     const infoData = [
-      { label: "PERSONAGEM", value: "Yoshikawa" },
-      { label: "COMANDOS", value: "343" },
-      { label: "CRIADOR", value: "@kawalyansky" },
-      { label: "IDIOMA", value: "Português", icon: true },
-      { label: "VOZ", value: "Milenna" }
+        { label: "PERSONAGEM", value: "Yoshikawa" },
+        { label: "COMANDOS", value: "343" },
+        { label: "CRIADOR", value: "@kawalyansky" },
+        { label: "IDIOMA", value: "Português", icon: true }, // Flag para ícone
+        { label: "VOZ", value: "Milenna" }
     ];
 
-    const labelX = startX + 5;
-    const valueX = startX + 355;
-    const lineHeight = 35;
+    infoData.forEach((item, index) => {
+        const yPos = infoStartY + (index * infoLineH);
 
-    ctx.font = 'bold 18px Arial';
+        // Label (Esquerda)
+        ctx.font = `bold 16px ${fontPrimary}`;
+        ctx.fillStyle = '#eebbdd'; // Rosa pastel
+        ctx.textAlign = 'left';
+        
+        // Se tiver ícone (Idioma)
+        if (item.icon) {
+            drawLangIcon(ctx, infoLabelX - 30, yPos + 5, 14);
+        }
+        ctx.fillText(item.label, infoLabelX, yPos);
 
-    infoData.forEach(item => {
-      if (item.icon) {
-         drawTranslateIcon(ctx, labelX - 25, cursorY + lineHeight/2, 18);
-      }
-
-      // Label com outline
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#ff99dd';
-      ctx.strokeStyle = '#000000';
-      ctx.lineWidth = 2;
-      ctx.strokeText(item.label, labelX, cursorY + lineHeight/2);
-      ctx.fillText(item.label, labelX, cursorY + lineHeight/2);
-
-      // Valor com outline
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#ffffff';
-      ctx.strokeText(item.value, valueX, cursorY + lineHeight/2);
-      ctx.fillText(item.value, valueX, cursorY + lineHeight/2);
-      
-      cursorY += lineHeight;
+        // Valor (Direita)
+        ctx.textAlign = 'right';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(item.value, infoValueX, yPos);
     });
 
-    // 9. BOTÃO EXIT
-    ctx.textAlign = 'left';
-    
+    // --- Botão EXIT ---
     const exitY = H - 80;
-    const exitW = 120;
-    const exitH = 45;
-    
-    fillRoundedRect(ctx, startX, exitY, exitW, exitH, 12, 'rgba(120, 60, 140, 0.9)');
-    
-    // Borda do botão EXIT
-    ctx.strokeStyle = '#ff3399';
-    ctx.lineWidth = 2;
-    drawRoundedRectPath(ctx, startX, exitY, exitW, exitH, 12);
-    ctx.stroke();
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.strokeStyle = '#000000';
-    ctx.lineWidth = 3;
+    drawRoundedRect(ctx, marginLeft, exitY, 120, 45, 15, 'rgba(80, 50, 90, 0.45)');
+    ctx.fillStyle = '#ebd5eb';
     ctx.textAlign = 'center';
-    ctx.font = 'bold 18px Arial';
-    ctx.strokeText("EXIT", startX + (exitW/2), exitY + (exitH/2));
-    ctx.fillText("EXIT", startX + (exitW/2), exitY + (exitH/2));
+    ctx.font = `bold 18px ${fontPrimary}`;
+    ctx.fillText("EXIT", marginLeft + 60, exitY + 22 + 2);
 
-    // --- SALVAR IMAGEM ---
-    console.log('Gerando arquivo PNG...');
-    const buffer = canvas.toBuffer('image/png');
-    const outputPath = path.join(__dirname, 'yoshikawa-menu-output.png');
-    writeFileSync(outputPath, buffer);
-    
-    console.log('✅ Imagem gerada com sucesso!');
-    console.log(`📁 Arquivo salvo em: ${outputPath}`);
-    
-    return buffer;
+    // 6. Moldura Preta Arredondada (Efeito de Tela de Celular/App)
+    // Simula o border-radius da imagem original cortando as pontas
+    ctx.globalCompositeOperation = 'destination-in';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, 60); // Raio grande nas bordas da tela
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
 
-  } catch (error) {
-    console.error("❌ Erro ao gerar imagem:", error);
-    throw error;
+    // 7. Output
+    const buffer = await canvas.encode('png');
+    
+    // Se estiver rodando como API (Next.js/Express)
+    if (res && typeof res.send === 'function') {
+        res.send(buffer);
+    } else {
+        // Se for script standalone, apenas retorna o buffer
+        return buffer;
+    }
+
+  } catch (e) {
+    console.error("Erro ao gerar canvas:", e);
+    if (res && typeof res.status === 'function') res.status(500).send("Erro interno");
   }
-}
-
-// Executar
-generateImage().catch(console.error);
+          }
