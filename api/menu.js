@@ -6,26 +6,22 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // --- REGISTRO DE FONTE ---
-const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
+// Certifique-se de que o arquivo da fonte existe neste caminho
+const fontPath = path.join(__dirname, '../fonts/Inter-Bold.ttf'); 
 if (!GlobalFonts.has('Inter')) {
   GlobalFonts.registerFromPath(fontPath, 'Inter');
 }
 
-// --- FUNÇÕES AUXILIARES ---
+// --- FUNÇÕES AUXILIARES DE DESENHO ---
+
+// Desenha retângulo arredondado (para clip ou preenchimento)
 function drawRoundedRectPath(ctx, x, y, width, height, radius) {
   ctx.beginPath();
-  ctx.moveTo(x + radius, y);
-  ctx.lineTo(x + width - radius, y);
-  ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-  ctx.lineTo(x + width, y + height - radius);
-  ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-  ctx.lineTo(x + radius, y + height);
-  ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-  ctx.lineTo(x, y + radius);
-  ctx.quadraticCurveTo(x, y, x + radius, y);
+  ctx.roundRect(x, y, width, height, radius);
   ctx.closePath();
 }
 
+// Preenche retângulo arredondado
 function fillRoundedRect(ctx, x, y, width, height, radius, color) {
   ctx.save();
   ctx.fillStyle = color;
@@ -34,123 +30,140 @@ function fillRoundedRect(ctx, x, y, width, height, radius, color) {
   ctx.restore();
 }
 
+// Desenha corações decorativos
 function drawHeart(ctx, x, y, size, color) {
   ctx.save();
   ctx.translate(x, y);
   ctx.fillStyle = color;
   ctx.beginPath();
-  const s = size; 
-  ctx.moveTo(0, s * 0.3); 
-  ctx.bezierCurveTo(-s * 0.5, -s * 0.3, -s * 1, s * 0.2, 0, s * 1);
-  ctx.bezierCurveTo(s * 1, s * 0.2, s * 0.5, -s * 0.3, 0, s * 0.3);
+  const topCurveHeight = size * 0.3;
+  ctx.moveTo(0, topCurveHeight);
+  ctx.bezierCurveTo(0, 0, -size / 2, 0, -size / 2, topCurveHeight);
+  ctx.bezierCurveTo(-size / 2, (size + topCurveHeight) / 2, 0, size, 0, size);
+  ctx.bezierCurveTo(0, size, size / 2, (size + topCurveHeight) / 2, size / 2, topCurveHeight);
+  ctx.bezierCurveTo(size / 2, 0, 0, 0, 0, topCurveHeight);
   ctx.fill();
   ctx.restore();
 }
 
-function drawLangIcon(ctx, x, y, size) {
-  ctx.save();
-  ctx.translate(x, y);
-  ctx.strokeStyle = '#ecaebd';
-  ctx.lineWidth = 2;
-  ctx.font = `bold ${size}px Inter`;
-  ctx.fillStyle = '#ecaebd';
-  ctx.fillText("A", 0, size);
-  ctx.font = `${size * 0.6}px Inter`;
-  ctx.fillText("あ", size * 0.6, size * 0.6);
-  ctx.restore();
+// Desenha o ícone de tradução (A/文)
+function drawTranslateIcon(ctx, x, y, size) {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.fillStyle = '#ff99cc'; // Cor rosa do ícone
+    
+    // Símbolo "A"
+    ctx.font = `bold ${size}px Inter`;
+    ctx.fillText("A", 0, 0);
+    
+    // Símbolo Chinês/Japonês pequeno atrás
+    ctx.font = `${size * 0.7}px Inter`;
+    ctx.globalAlpha = 0.7;
+    ctx.fillText("文", size * 0.6, -size * 0.3);
+    
+    ctx.restore();
 }
 
 export default async function handler(req, res) {
+  // Configuração básica de resposta HTTP (se usado como API)
   if (res && typeof res.setHeader === 'function') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader("Content-Type", "image/png");
   }
 
   try {
-    // 1. Configuração do Canvas com padding maior
-    const W = 1200;
-    const H = 780;
-    const PADDING = 60; // Padding aumentado
-    const BORDER_RADIUS = 80; // Bordas muito mais arredondadas
-    
+    // 1. CONFIGURAÇÃO DO CANVAS
+    const W = 1000; // Largura ajustada para a proporção da imagem
+    const H = 650;  // Altura ajustada
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    // --- CARREGAMENTO DE IMAGENS ---
+    // URLs das imagens (mantendo as suas)
     const bgUrl = "https://yoshikawa-bot.github.io/cache/images/d998aed2.jpg";
     const charUrl = "https://yoshikawa-bot.github.io/cache/images/717371a8.png";
     const logoUrl = "https://yoshikawa-bot.github.io/cache/images/4b8be4b4.png";
 
+    // Carregamento paralelo das imagens
     const [bgImage, charImage, logoImage] = await Promise.all([
       loadImage(bgUrl),
       loadImage(charUrl),
       loadImage(logoUrl)
     ]);
 
-    // 2. Aplicar clip arredondado primeiro (para tudo ficar dentro das bordas)
-    ctx.save();
-    drawRoundedRectPath(ctx, 0, 0, W, H, BORDER_RADIUS);
+    // 2. FUNDO E BASE (Bordas Arredondadas Globais)
+    const cardRadius = 50;
+    
+    // Criar o formato do cartão (Clip)
+    ctx.beginPath();
+    ctx.roundRect(0, 0, W, H, cardRadius);
     ctx.clip();
 
-    // 3. Fundo (Background)
+    // Desenhar Imagem de Fundo (Cobrindo tudo)
+    // Calculamos o aspect ratio para "cover"
     const bgScale = Math.max(W / bgImage.width, H / bgImage.height);
     const bgW = bgImage.width * bgScale;
     const bgH = bgImage.height * bgScale;
-    ctx.drawImage(bgImage, (W - bgW) / 2, (H - bgH) / 2, bgW, bgH);
+    const bgX = (W - bgW) / 2;
+    const bgY = (H - bgH) / 2;
+    ctx.drawImage(bgImage, bgX, bgY, bgW, bgH);
 
-    // 4. Overlay Escuro (menos opaco para deixar elementos visíveis)
-    const gradient = ctx.createLinearGradient(0, 0, 0, H);
-    gradient.addColorStop(0, 'rgba(20, 0, 20, 0.65)');
-    gradient.addColorStop(0.5, 'rgba(30, 0, 40, 0.70)');
-    gradient.addColorStop(1, 'rgba(20, 0, 30, 0.75)');
+    // 3. CAMADA ESCURA (OVERLAY)
+    // Essencial para o texto branco aparecer, como na referência
+    const gradient = ctx.createLinearGradient(0, 0, W, 0);
+    gradient.addColorStop(0, 'rgba(20, 0, 30, 0.95)'); // Esquerda bem escura
+    gradient.addColorStop(0.5, 'rgba(30, 0, 40, 0.85)'); // Meio
+    gradient.addColorStop(1, 'rgba(40, 0, 50, 0.4)');  // Direita mais transparente para a personagem
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, W, H);
 
-    // Vignette suave
-    const radialGrad = ctx.createRadialGradient(W/2, H/2, H/3, W/2, H/2, W);
-    radialGrad.addColorStop(0, 'rgba(0,0,0,0)');
-    radialGrad.addColorStop(1, 'rgba(0,0,0,0.5)');
-    ctx.fillStyle = radialGrad;
-    ctx.fillRect(0, 0, W, H);
+    // 4. PERSONAGEM (Lado Direito)
+    // Ajuste fino da posição
+    const charScale = 0.95; // Escala da personagem
+    const cW = charImage.width * charScale;
+    const cH = charImage.height * charScale;
+    // Posiciona ela ancorada no canto inferior direito
+    const cX = W - cW + 80; // +80 joga um pouco pra direita (corta o excesso)
+    const cY = H - cH + 50; // +50 joga um pouco pra baixo
+    ctx.drawImage(charImage, cX, cY, cW, cH);
 
-    // 5. Personagem (Lado Direito) - ajustado para não ser cortado
-    const charScale = 1.0;
-    const charW = charImage.width * charScale;
-    const charH = charImage.height * charScale;
-    const charX = W - charW + 60;
-    const charY = H - charH + 40;
-    ctx.drawImage(charImage, charX, charY, charW, charH);
+    // --- ÁREA DE INTERFACE (LADO ESQUERDO) ---
+    const startX = 60; // Margem esquerda
+    let cursorY = 60;  // Cursor vertical
 
-    ctx.restore(); // Fim do clip
-
-    // 6. Interface - Lado Esquerdo com padding aumentado
-    const marginLeft = 80 + PADDING;
-
-    // --- Header / Logo ---
-    ctx.fillStyle = '#ff66aa';
-    ctx.font = 'bold 14px Inter';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('VERSION 7.0', marginLeft, 85 + PADDING);
-
-    // Logo
-    const logoScale = 0.8;
-    const logoW = logoImage.width * logoScale;
-    const logoH = logoImage.height * logoScale;
-    ctx.drawImage(logoImage, marginLeft - 10, 95 + PADDING, logoW, logoH);
-
-    // "MAIN MENU" com corações
-    const menuStartY = 240 + PADDING;
+    // 5. CABEÇALHO (Versão e Logo)
     
-    drawHeart(ctx, marginLeft - 25, menuStartY - 15, 12, '#ffccdd');
-    drawHeart(ctx, marginLeft - 10, menuStartY - 5, 8, '#ffccdd');
+    // Texto "VERSION 7.0"
+    ctx.font = 'bold 12px Inter';
+    ctx.fillStyle = '#ff66aa'; // Rosa neon
+    ctx.fillText('VERSION 7.0', startX, cursorY);
+    
+    cursorY += 15;
 
+    // Logo (Imagem)
+    const logoTargetH = 70; // Altura desejada para o logo
+    const logoRatio = logoImage.width / logoImage.height;
+    const logoTargetW = logoTargetH * logoRatio;
+    
+    // Filtro para pintar o logo de rosa/branco se necessário, 
+    // mas vamos desenhar normal assumindo que a imagem já tem cor.
+    // Dica: Se o logo for preto, use ctx.globalCompositeOperation = 'source-in' para colorir.
+    ctx.drawImage(logoImage, startX - 5, cursorY, logoTargetW, logoTargetH);
+    
+    cursorY += logoTargetH + 40; // Espaço após o logo
+
+    // 6. TÍTULO "MAIN MENU"
+    // Desenha corações decorativos antes do texto
+    drawHeart(ctx, startX, cursorY - 5, 14, '#ffccdd');
+    drawHeart(ctx, startX + 18, cursorY + 5, 10, '#ffccdd');
+
+    ctx.font = '900 24px Inter'; // Extra Bold
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 24px Inter';
-    ctx.fillText('MAIN MENU', marginLeft, menuStartY);
+    ctx.fillText('MAIN MENU', startX + 40, cursorY + 10);
 
-    // --- Lista de Botões ---
-    const buttons = [
+    cursorY += 40; // Espaço para começar os botões
+
+    // 7. LISTA DE MENUS (Botões)
+    const menus = [
       "MENU DOWNLOADS",
       "MENU VIP",
       "MENU NETFLIX",
@@ -159,41 +172,31 @@ export default async function handler(req, res) {
       "INFO BOT"
     ];
 
-    const btnH = 42;
-    const btnW = 380;
-    const btnGap = 12;
-    let currentY = menuStartY + 30;
+    const btnHeight = 38;
+    const btnWidth = 320;
+    const btnGap = 10;
+    const btnColor = 'rgba(70, 40, 80, 0.6)'; // Roxo translúcido
 
-    ctx.font = 'bold 18px Inter';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
+    ctx.font = 'bold 15px Inter';
+    ctx.textBaseline = 'middle'; // Ajuda a centralizar texto no botão
 
-    buttons.forEach((text) => {
-      // Fundo do botão com sombra
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
-      fillRoundedRect(ctx, marginLeft, currentY, btnW, btnH, 10, 'rgba(80, 50, 90, 0.6)');
-      ctx.restore();
+    menus.forEach(menuText => {
+      // Fundo do botão
+      fillRoundedRect(ctx, startX, cursorY, btnWidth, btnHeight, 10, btnColor);
       
-      // Texto do botão com sombra para melhor legibilidade
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      // Texto do botão
+      ctx.fillStyle = '#ebd5eb'; // Lilás bem claro
+      ctx.shadowColor = 'rgba(0,0,0,0.5)';
       ctx.shadowBlur = 4;
-      ctx.fillStyle = '#ebd5eb';
-      ctx.fillText(text, marginLeft + 20, currentY + btnH/2);
-      ctx.restore();
-      
-      currentY += btnH + btnGap;
+      ctx.fillText(menuText, startX + 15, cursorY + (btnHeight / 2) + 1);
+      ctx.shadowBlur = 0; // Reseta sombra
+
+      cursorY += btnHeight + btnGap;
     });
 
-    // --- Seção de Informações ---
-    const infoStartY = currentY + 20;
-    const infoLineH = 32;
-    const infoLabelX = marginLeft;
-    const infoValueX = marginLeft + 370;
+    cursorY += 10; // Espaço extra antes das informações
 
+    // 8. METADADOS (Info List)
     const infoData = [
       { label: "PERSONAGEM", value: "Yoshikawa" },
       { label: "COMANDOS", value: "343" },
@@ -202,65 +205,58 @@ export default async function handler(req, res) {
       { label: "VOZ", value: "Milenna" }
     ];
 
-    infoData.forEach((item, index) => {
-      const yPos = infoStartY + (index * infoLineH);
+    const labelX = startX;
+    const valueX = startX + 320; // Alinhado à direita dos botões
+    const lineHeight = 28;
 
-      // Label
-      ctx.font = 'bold 16px Inter';
-      ctx.fillStyle = '#eebbdd';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      
+    ctx.font = 'bold 14px Inter';
+
+    infoData.forEach(item => {
+      // Ícone especial para idioma
       if (item.icon) {
-        drawLangIcon(ctx, infoLabelX - 30, yPos - 5, 14);
+         drawTranslateIcon(ctx, labelX - 25, cursorY + lineHeight/2 + 4, 14);
       }
-      
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 3;
-      ctx.fillText(item.label, infoLabelX, yPos);
-      ctx.restore();
 
-      // Valor
+      // Label (Esquerda)
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#eebbdd'; // Rosa claro
+      ctx.fillText(item.label, labelX, cursorY + lineHeight/2);
+
+      // Valor (Direita)
       ctx.textAlign = 'right';
-      ctx.save();
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
-      ctx.shadowBlur = 3;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText(item.value, infoValueX, yPos);
-      ctx.restore();
+      ctx.fillStyle = '#ffffff'; // Branco
+      ctx.fillText(item.value, valueX, cursorY + lineHeight/2);
+      
+      cursorY += lineHeight;
     });
 
-    // --- Botão EXIT ---
-    const exitY = H - 80 - PADDING;
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-    ctx.shadowBlur = 10;
-    ctx.shadowOffsetY = 4;
-    fillRoundedRect(ctx, marginLeft, exitY, 120, 45, 15, 'rgba(80, 50, 90, 0.6)');
-    ctx.restore();
+    // 9. BOTÃO EXIT (Rodapé Esquerdo)
+    // Reinicia alinhamento
+    ctx.textAlign = 'left';
+    
+    // Posição absoluta lá embaixo
+    const exitY = H - 70;
+    const exitW = 100;
+    const exitH = 35;
+    
+    fillRoundedRect(ctx, startX, exitY, exitW, exitH, 12, 'rgba(80, 50, 90, 0.8)');
     
     ctx.fillStyle = '#ebd5eb';
     ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.font = 'bold 18px Inter';
-    ctx.save();
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
-    ctx.shadowBlur = 4;
-    ctx.fillText("EXIT", marginLeft + 60, exitY + 22);
-    ctx.restore();
+    ctx.font = 'bold 14px Inter';
+    ctx.fillText("EXIT", startX + (exitW/2), exitY + (exitH/2) + 1);
 
-    // 7. Output
+    // --- FINALIZAÇÃO ---
     const buffer = await canvas.encode('png');
-    
+
     if (res && typeof res.send === 'function') {
       res.send(buffer);
     } else {
       return buffer;
     }
 
-  } catch (e) {
-    console.error("Erro ao gerar canvas:", e);
-    if (res && typeof res.status === 'function') res.status(500).send("Erro interno");
+  } catch (error) {
+    console.error("Erro no Canvas:", error);
+    if (res) res.status(500).send("Erro ao gerar imagem");
   }
-        }
+}
