@@ -1,4 +1,3 @@
-
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -6,175 +5,285 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Registrar fonte Inter
 try {
   const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
   if (!GlobalFonts.has('Inter')) {
     GlobalFonts.registerFromPath(fontPath, 'Inter');
   }
-} catch (e) { 
-  console.log('Fonte Inter não encontrada, usando fallback');
+} catch (e) { }
+
+function drawHeart(ctx, x, y, size) {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  const s = size * 0.9; 
+  ctx.moveTo(0, s * 0.45); 
+  ctx.bezierCurveTo(-s * 0.7, s * 0.1, -s * 0.6, -s * 0.6, 0, -s * 0.25);
+  ctx.bezierCurveTo(s * 0.6, -s * 0.6, s * 0.7, s * 0.1, 0, s * 0.45);
+  ctx.fill();
+  ctx.restore();
 }
 
-// Glassmorphism
-function drawGlassRect(ctx, x, y, width, height, radius, bgImg, bgRect) {
+function drawShareIcon(ctx, x, y, size) {
   ctx.save();
+  ctx.translate(x, y);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = 4.5;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  const s = size * 0.85;
+  const boxW = s * 0.55;
+  const boxTopY = -s * 0.1;
+  const boxBottomY = s * 0.6;
+  const gapW = s * 0.22;
   ctx.beginPath();
-  ctx.roundRect(x, y, width, height, radius);
-  ctx.clip();
-  
-  if (bgImg) {
-    ctx.filter = 'blur(30px)';
-    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
-  }
-  ctx.filter = 'none';
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-  ctx.fill();
-  
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-  ctx.lineWidth = 1.5;
+  ctx.moveTo(-gapW, boxTopY);
+  ctx.lineTo(-boxW, boxTopY);
+  ctx.lineTo(-boxW, boxBottomY);
+  ctx.lineTo(boxW, boxBottomY);
+  ctx.lineTo(boxW, boxTopY);
+  ctx.lineTo(gapW, boxTopY);
+  ctx.stroke();
+  const arrowScale = 0.92;
+  const arrowTipY = -s * 0.75 * arrowScale;
+  const arrowBaseY = s * 0.1 * arrowScale;
+  const arrowHeadH = s * 0.25 * arrowScale;
+  const arrowHeadW = s * 0.35 * arrowScale;
+  ctx.beginPath();
+  ctx.moveTo(0, arrowBaseY);
+  ctx.lineTo(0, arrowTipY);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(-arrowHeadW, arrowTipY + arrowHeadH);
+  ctx.lineTo(0, arrowTipY);
+  ctx.lineTo(arrowHeadW, arrowTipY + arrowHeadH);
   ctx.stroke();
   ctx.restore();
 }
 
-export default async function handler(req, res) {
-  if (res && typeof res.setHeader === 'function') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader("Content-Type", "image/png");
+function drawGlassCircle(ctx, centerX, centerY, radius, bgImg, bgRect) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.clip();
+  if (bgImg) {
+    ctx.filter = 'blur(20px)';
+    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
   }
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawGlassRect(ctx, x, y, w, h, radius, bgImg, bgRect) {
+  ctx.save();
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, radius);
+  ctx.clip();
+  if (bgImg) {
+    ctx.filter = 'blur(20px)';
+    ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+  }
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fill();
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+  ctx.lineWidth = 1;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawPlayIcon(ctx, x, y, size) {
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  const visualOffset = size / 8;
+  ctx.moveTo(x - size / 2 + visualOffset, y - size / 2);
+  ctx.lineTo(x + size / 2 + visualOffset, y);
+  ctx.lineTo(x - size / 2 + visualOffset, y + size / 2);
+  ctx.fill();
+}
+
+function drawSkipIcon(ctx, x, y, size, direction) {
+  ctx.fillStyle = '#FFFFFF';
+  const barWidth = size * 0.15;
+  const triangleSize = size * 0.5;
+  ctx.save();
+  ctx.translate(x, y);
+  if (direction === -1) ctx.scale(-1, 1);
+  ctx.fillRect((size/2) - barWidth, -size/2, barWidth, size);
+  const t1X = (size/2) - barWidth - 2; 
+  ctx.beginPath();
+  ctx.moveTo(t1X, 0); 
+  ctx.lineTo(t1X - triangleSize, -size/2);
+  ctx.lineTo(t1X - triangleSize, size/2);
+  ctx.fill();
+  const t2X = t1X - triangleSize + 5;
+  ctx.beginPath();
+  ctx.moveTo(t2X, 0);
+  ctx.lineTo(t2X - triangleSize, -size/2);
+  ctx.lineTo(t2X - triangleSize, size/2);
+  ctx.fill();
+  ctx.restore();
+}
+
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    // Canvas landscape
-    const W = 1920;
-    const H = 1080;
-    const canvas = createCanvas(W, H);
+    const DESIGN_RES = 1080; 
+    const FINAL_CANVAS_SIZE = 1080; 
+    const STICKER_SCALE = 0.92; 
+
+    const stickerActualSize = FINAL_CANVAS_SIZE * STICKER_SCALE;
+    const margin = (FINAL_CANVAS_SIZE - stickerActualSize) / 2;
+    const scaleFactor = stickerActualSize / DESIGN_RES;
+
+    const W = DESIGN_RES, H = DESIGN_RES;
+    const PADDING = 90, CARD_RADIUS = 120;
+    const CONTROLS_Y_BOTTOM = 140, CONTROLS_GAP = 260;
+    const PLAY_BTN_RADIUS = 80, SIDE_BTN_RADIUS = 80;
+    const PLAY_ICON_SIZE = 70, SIDE_ICON_SIZE = 40;
+    const PROGRESS_Y_BOTTOM = 360, TIME_SIZE = 48;
+    const BG_ZOOM = 1.9;
+
+    const {
+      channel = "Terence Howard",
+      handle = "@kawalyansky",
+      thumbnail = "https://i.scdn.co/image/ab67616d0000b273b5f0709d2243e8cb9e623d61",
+      totalTime = "2:13"
+    } = req.method === "POST" ? req.body : req.query;
+
+    const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
 
-    // URLs
-    const bgUrl = "https://yoshikawa-bot.github.io/cache/images/d998aed2.jpg";
-    const charUrl = "https://yoshikawa-bot.github.io/cache/images/717371a8.png";
-    const logoUrl = "https://yoshikawa-bot.github.io/cache/images/4b8be4b4.png";
+    ctx.save();
+    ctx.translate(margin, margin);
+    ctx.scale(scaleFactor, scaleFactor);
 
-    const [bgImage, charImage, logoImage] = await Promise.all([
-      loadImage(bgUrl),
-      loadImage(charUrl),
-      loadImage(logoUrl)
-    ]);
+    let bgImg = null;
+    try {
+        if(thumbnail && thumbnail.startsWith('http')) {
+             const response = await fetch(thumbnail);
+             const buf = Buffer.from(await response.arrayBuffer());
+             bgImg = await loadImage(buf);
+        }
+    } catch (e) { }
 
-    // === FUNDO (sem efeitos, apenas fit) ===
-    const bgScale = Math.max(W / bgImage.width, H / bgImage.height);
-    const bgW = bgImage.width * bgScale;
-    const bgH = bgImage.height * bgScale;
-    const bgX = (W - bgW) / 2;
-    const bgY = (H - bgH) / 2;
-    
-    const bgRect = { x: bgX, y: bgY, w: bgW, h: bgH };
-    ctx.drawImage(bgImage, bgX, bgY, bgW, bgH);
+    let avatarImg = null;
+    try {
+        const response = await fetch('https://yoshikawa-bot.github.io/cache/images/47ab06bd.jpg');
+        const buf = Buffer.from(await response.arrayBuffer());
+        avatarImg = await loadImage(buf);
+    } catch (e) { }
 
-    // === PERSONAGEM (direita, sem efeitos) ===
-    const charScale = 0.75;
-    const charW = charImage.width * charScale;
-    const charH = charImage.height * charScale;
-    const charX = W - charW + 200;
-    const charY = H - charH + 50;
-    ctx.drawImage(charImage, charX, charY, charW, charH);
-
-    // === MENU (esquerda) ===
-    const menuX = 120;
-    const menuY = 120;
-    const menuW = 550;
-    
-    // Logo no topo
-    const logoScale = 0.35;
-    const logoW = logoImage.width * logoScale;
-    const logoH = logoImage.height * logoScale;
-    ctx.drawImage(logoImage, menuX, menuY, logoW, logoH);
-    
-    let currentY = menuY + logoH + 80;
-
-    // Título
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 48px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.fillText('MAIN MENU', menuX, currentY);
-    currentY += 80;
-
-    // Botões
-    const buttons = [
-      "DOWNLOADS",
-      "VIP",
-      "NETFLIX",
-      "BRINCADEIRAS",
-      "ADM",
-      "INFO"
-    ];
-
-    const btnH = 65;
-    const btnGap = 20;
-
-    buttons.forEach((text) => {
-      drawGlassRect(ctx, menuX, currentY, menuW, btnH, 16, bgImage, bgRect);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.font = 'bold 32px Inter, sans-serif';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, menuX + 30, currentY + btnH / 2);
-      
-      currentY += btnH + btnGap;
-    });
-
-    currentY += 40;
-
-    // Info
-    const infoData = [
-      { label: "PERSONAGEM", value: "Yoshikawa" },
-      { label: "COMANDOS", value: "343" },
-      { label: "CRIADOR", value: "@kawalyansky" }
-    ];
-
-    ctx.font = '500 22px Inter, sans-serif';
-    
-    infoData.forEach((item) => {
-      ctx.fillStyle = '#ff99cc';
-      ctx.textAlign = 'left';
-      ctx.fillText(item.label, menuX, currentY);
-      
-      ctx.fillStyle = '#FFFFFF';
-      ctx.textAlign = 'right';
-      ctx.fillText(item.value, menuX + menuW, currentY);
-      
-      currentY += 45;
-    });
-
-    // Exit
-    const exitY = H - 150;
-    drawGlassRect(ctx, menuX, exitY, 180, 65, 16, bgImage, bgRect);
-    
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 28px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText("EXIT", menuX + 90, exitY + 32);
-
-    // Cantos arredondados
-    ctx.globalCompositeOperation = 'destination-in';
     ctx.beginPath();
-    ctx.roundRect(0, 0, W, H, 120);
+    ctx.roundRect(0, 0, W, H, CARD_RADIUS);
+    ctx.clip();
+
+    let bgRect = { x: 0, y: 0, w: W, h: H };
+    if (bgImg) {
+        const scale = Math.max(W / bgImg.width, H / bgImg.height) * BG_ZOOM;
+        bgRect.w = bgImg.width * scale;
+        bgRect.h = bgImg.height * scale;
+        bgRect.x = (W - bgRect.w) / 2;
+        bgRect.y = (H - bgRect.h) / 2;
+        ctx.drawImage(bgImg, bgRect.x, bgRect.y, bgRect.w, bgRect.h);
+    }
+
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    grad.addColorStop(0, 'rgba(0,0,0,0.1)');
+    grad.addColorStop(0.5, 'rgba(0,0,0,0.4)');
+    grad.addColorStop(1, 'rgba(0,0,0,0.85)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0,0,W,H);
+
+    const headerH = 150;
+    const pillX = PADDING, pillY = PADDING;
+    const pillWidth = W - PADDING*2 - headerH*2.2 - 20; 
+
+    drawGlassRect(ctx, pillX, pillY, pillWidth, headerH, headerH/2, bgImg, bgRect);
+    
+    const avSize = 110;
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(pillX + 20 + avSize/2, pillY + headerH/2, avSize/2, 0, Math.PI*2);
+    ctx.clip();
+    if(avatarImg) ctx.drawImage(avatarImg, pillX+20, pillY + (headerH-avSize)/2, avSize, avSize);
+    ctx.restore();
+
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 42px Inter, sans-serif';
+
+    const textStartX = pillX + avSize + 50;
+    const maxTextWidth = pillWidth - (avSize + 50) - 20; 
+    let displayChannel = channel;
+
+    if (ctx.measureText(displayChannel).width > maxTextWidth) {
+      while (ctx.measureText(displayChannel + '...').width > maxTextWidth && displayChannel.length > 0) {
+        displayChannel = displayChannel.slice(0, -1);
+      }
+      displayChannel += '...';
+    }
+
+    ctx.fillText(displayChannel, textStartX, pillY + headerH/2 - 5);
+    
+    ctx.fillStyle = '#ccc';
+    ctx.font = '400 32px Inter, sans-serif';
+    ctx.fillText(handle, pillX + avSize + 50, pillY + headerH/2 + 35);
+
+    const likeX = W - PADDING - headerH/2;
+    const shareX = likeX - headerH - 10;
+    const topIconSize = 52; 
+
+    drawGlassCircle(ctx, shareX, pillY + headerH/2, headerH/2, bgImg, bgRect);
+    drawShareIcon(ctx, shareX, pillY + headerH/2, topIconSize);
+
+    drawGlassCircle(ctx, likeX, pillY + headerH/2, headerH/2, bgImg, bgRect);
+    drawHeart(ctx, likeX, pillY + headerH/2, topIconSize); 
+
+    const pY = H - PROGRESS_Y_BOTTOM, pW = W - PADDING * 2, ratio = 0.42;
+    ctx.font = `500 ${TIME_SIZE}px Inter, sans-serif`;
+    ctx.fillStyle = '#FFFFFF';
+    ctx.textAlign = 'left';
+    ctx.fillText("0:52", PADDING, pY - 30);
+    ctx.textAlign = 'right';
+    ctx.fillText("-1:21", W - PADDING, pY - 30);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.beginPath();
+    ctx.roundRect(PADDING, pY, pW, 12, 6);
     ctx.fill();
-    ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = '#FFFFFF';
+    ctx.beginPath();
+    ctx.roundRect(PADDING, pY, pW * ratio, 12, 6);
+    ctx.fill();
+    
+    const cY = H - CONTROLS_Y_BOTTOM, cX = W / 2;
+    const lX = cX - CONTROLS_GAP, rX = cX + CONTROLS_GAP;
+
+    drawGlassCircle(ctx, lX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, cX, cY, PLAY_BTN_RADIUS, bgImg, bgRect);
+    drawGlassCircle(ctx, rX, cY, SIDE_BTN_RADIUS, bgImg, bgRect);
+
+    drawSkipIcon(ctx, lX, cY, SIDE_ICON_SIZE, -1);
+    drawPlayIcon(ctx, cX, cY, PLAY_ICON_SIZE);
+    drawSkipIcon(ctx, rX, cY, SIDE_ICON_SIZE, 1);
+
+    ctx.restore(); 
 
     const buffer = await canvas.encode('png');
-    
-    if (res && typeof res.send === 'function') {
-      res.send(buffer);
-    } else {
-      return buffer;
-    }
+    res.setHeader("Content-Type", "image/png");
+    res.send(buffer);
 
   } catch (e) {
-    console.error("Erro:", e);
-    if (res && typeof res.status === 'function') {
-      res.status(500).send("Erro");
-    }
+    console.error(e);
+    res.status(500).send("Erro na geração");
   }
-}
+      }
