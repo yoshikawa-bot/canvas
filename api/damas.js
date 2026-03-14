@@ -161,13 +161,27 @@ export default async function handler(req, res) {
       const baseColor = isRed ? '#c0392b' : '#f0f0f0';
       const rimColor = isRed ? '#7b241c' : '#999999';
 
+      const drawShape = (offsetY, radius) => {
+        ctx.beginPath();
+        if (isKing) {
+          for (let i = 0; i < 5; i++) {
+            const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
+            const px = cx + Math.cos(angle) * radius;
+            const py = cy + offsetY + Math.sin(angle) * radius;
+            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
+          }
+          ctx.closePath();
+        } else {
+          ctx.arc(cx, cy + offsetY, radius, 0, Math.PI * 2);
+        }
+      };
+
       ctx.save();
       ctx.shadowColor = 'rgba(0,0,0,0.6)';
       ctx.shadowBlur = 12;
       ctx.shadowOffsetY = 4;
       ctx.fillStyle = rimColor;
-      ctx.beginPath();
-      ctx.arc(cx, cy + 4, r, 0, Math.PI * 2);
+      drawShape(4, r);
       ctx.fill();
       ctx.restore();
 
@@ -175,8 +189,7 @@ export default async function handler(req, res) {
       ctx.shadowColor = 'rgba(0,0,0,0.3)';
       ctx.shadowBlur = 6;
       ctx.fillStyle = baseColor;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      drawShape(0, r);
       ctx.fill();
       ctx.restore();
 
@@ -184,27 +197,13 @@ export default async function handler(req, res) {
       grad.addColorStop(0, isRed ? 'rgba(255,120,100,0.55)' : 'rgba(255,255,255,0.70)');
       grad.addColorStop(1, 'rgba(0,0,0,0)');
       ctx.fillStyle = grad;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      drawShape(0, r);
       ctx.fill();
 
       ctx.strokeStyle = isRed ? 'rgba(255,180,160,0.35)' : 'rgba(100,100,100,0.40)';
       ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2);
+      drawShape(0, r * 0.72);
       ctx.stroke();
-
-      if (isKing) {
-        ctx.save();
-        ctx.shadowColor = isRed ? '#fff' : '#333';
-        ctx.shadowBlur = 8;
-        ctx.fillStyle = isRed ? 'rgba(255,255,255,0.95)' : 'rgba(40,40,40,0.95)';
-        ctx.font = `bold ${Math.round(r * 0.82)}px Inter, sans-serif`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('♛', cx, cy + r * 0.04);
-        ctx.restore();
-      }
     }
 
     ctx.restore();
@@ -218,4 +217,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send('Erro na geração');
   }
-  }
+}
