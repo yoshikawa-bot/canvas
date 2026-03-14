@@ -44,57 +44,27 @@ function drawO(ctx, cx, cy, r, highlight) {
   ctx.restore();
 }
 
-function drawGlassStrike(ctx, a, b, W, H) {
+function drawWinStrike(ctx, a, b) {
   const dx = b.x - a.x;
   const dy = b.y - a.y;
   const len = Math.sqrt(dx * dx + dy * dy);
   const ux = dx / len;
   const uy = dy / len;
-  const hw = 30;
-  const ext = hw;
-
+  const ext = 30;
   const p0x = a.x - ux * ext;
   const p0y = a.y - uy * ext;
   const p1x = b.x + ux * ext;
   const p1y = b.y + uy * ext;
-
   ctx.save();
-  ctx.strokeStyle = 'rgba(255,255,255,0)';
-  ctx.lineWidth = hw * 2;
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 26;
   ctx.lineCap = 'round';
-  ctx.beginPath();
-  ctx.moveTo(p0x, p0y);
-  ctx.lineTo(p1x, p1y);
-
-  const tempCanvas = createCanvas(W, H);
-  const tempCtx = tempCanvas.getContext('2d');
-  tempCtx.fillStyle = '#0f1117';
-  tempCtx.fillRect(0, 0, W, H);
-
-  ctx.save();
-  ctx.lineWidth = hw * 2;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = '#000';
-  ctx.beginPath();
-  ctx.moveTo(p0x, p0y);
-  ctx.lineTo(p1x, p1y);
-  ctx.clip();
-
-  ctx.filter = 'blur(20px)';
-  ctx.drawImage(tempCanvas, 0, 0);
-  ctx.filter = 'none';
-  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
-  ctx.fillRect(0, 0, W, H);
-  ctx.restore();
-
-  ctx.lineWidth = hw * 2;
-  ctx.lineCap = 'round';
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
   ctx.beginPath();
   ctx.moveTo(p0x, p0y);
   ctx.lineTo(p1x, p1y);
   ctx.stroke();
-
   ctx.restore();
 }
 
@@ -233,7 +203,7 @@ export default async function handler(req, res) {
       });
       const a = getCenter(winLine[0]);
       const b = getCenter(winLine[2]);
-      drawGlassStrike(ctx, a, b, W, H);
+      drawWinStrike(ctx, a, b);
     }
 
     ctx.restore();
