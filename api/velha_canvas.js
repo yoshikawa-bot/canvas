@@ -12,15 +12,60 @@ try {
   }
 } catch (e) {}
 
-function getInitialBoard() {
-  const board = Array(36).fill(null);
-  for (let row = 0; row < 2; row++)
-    for (let col = 0; col < 6; col++)
-      if ((row + col) % 2 === 1) board[row * 6 + col] = 'b';
-  for (let row = 4; row < 6; row++)
-    for (let col = 0; col < 6; col++)
-      if ((row + col) % 2 === 1) board[row * 6 + col] = 'r';
-  return board;
+function drawX(ctx, cx, cy, r, highlight) {
+  const color = highlight ? '#ff6b6b' : '#e63946';
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = highlight ? 40 : 20;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = highlight ? 30 : 26;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(cx - r, cy - r);
+  ctx.lineTo(cx + r, cy + r);
+  ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(cx + r, cy - r);
+  ctx.lineTo(cx - r, cy + r);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawO(ctx, cx, cy, r, highlight) {
+  const color = highlight ? '#74c7ec' : '#4dabf7';
+  ctx.save();
+  ctx.shadowColor = color;
+  ctx.shadowBlur = highlight ? 40 : 20;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = highlight ? 30 : 26;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawWinStrike(ctx, a, b) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  const ext = 30;
+  const p0x = a.x - ux * ext;
+  const p0y = a.y - uy * ext;
+  const p1x = b.x + ux * ext;
+  const p1y = b.y + uy * ext;
+  ctx.save();
+  ctx.shadowColor = '#ffffff';
+  ctx.shadowBlur = 20;
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 26;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p0x, p0y);
+  ctx.lineTo(p1x, p1y);
+  ctx.stroke();
+  ctx.restore();
 }
 
 export default async function handler(req, res) {
@@ -29,32 +74,49 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    let rawBoard, rawLastMove;
+    let rawBoard, rawWin;
 
     if (req.method === 'POST') {
       rawBoard = req.body?.board;
-      rawLastMove = req.body?.lastMove ?? null;
+      rawWin = req.body?.win ?? null;
     } else {
       rawBoard = req.query?.board ?? null;
-      rawLastMove = req.query?.lastMove ?? null;
+      rawWin = req.query?.win ?? null;
     }
 
     let board;
-    if (typeof rawBoard === 'string') {
-      try { board = JSON.parse(rawBoard); } catch { board = null; }
-    } else if (Array.isArray(rawBoard)) {
-      board = rawBoard;
-    }
-
-    if (!board || !Array.isArray(board) || board.length !== 36) {
-      board = getInitialBoard();
-    }
-
-    let lastMove = null;
-    if (rawLastMove) {
+    if (Array.isArray(rawBoard)) {
+      board = rawBoard.map(c => (c === 'X' || c === 'O') ? c : null);
+    } else if (typeof rawBoard === 'string') {
       try {
-        lastMove = typeof rawLastMove === 'string' ? JSON.parse(rawLastMove) : rawLastMove;
-      } catch { lastMove = null; }
+        const parsed = JSON.parse(rawBoard);
+        if (Array.isArray(parsed)) {
+          board = parsed.map(c => (c === 'X' || c === 'O') ? c : null);
+        } else {
+          throw new Error();
+        }
+      } catch {
+        const s = rawBoard.padEnd(9, '_');
+        board = Array.from({ length: 9 }, (_, i) => {
+          const c = s[i];
+          return (c === 'X' || c === 'O') ? c : null;
+        });
+      }
+    } else {
+      board = Array(9).fill(null);
+    }
+
+    while (board.length < 9) board.push(null);
+    board = board.slice(0, 9);
+
+    let winLine = null;
+    if (rawWin) {
+      if (Array.isArray(rawWin)) {
+        winLine = rawWin.map(Number).filter(n => !isNaN(n));
+      } else if (typeof rawWin === 'string') {
+        winLine = rawWin.split(',').map(Number).filter(n => !isNaN(n));
+      }
+      if (winLine && winLine.length !== 3) winLine = null;
     }
 
     const FINAL_CANVAS_SIZE = 1080;
@@ -66,12 +128,13 @@ export default async function handler(req, res) {
 
     const W = DESIGN_RES;
     const H = DESIGN_RES;
-    const CARD_RADIUS = 120;
-    const LABEL_AREA = 90;
-    const BOARD_SIZE = W - LABEL_AREA * 2 - 80;
-    const BOARD_X = LABEL_AREA + 40;
-    const BOARD_Y = LABEL_AREA + 40;
-    const CELL = BOARD_SIZE / 6;
+    const CARD_RADIUS = 140;
+
+    const GRID_SIZE = 900;
+    const GRID_X = (W - GRID_SIZE) / 2;
+    const GRID_Y = (H - GRID_SIZE) / 2;
+    const CELL = GRID_SIZE / 3;
+    const LINE_W = 8;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
@@ -84,126 +147,63 @@ export default async function handler(req, res) {
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
 
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#0f1117';
     ctx.fillRect(0, 0, W, H);
 
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.9)';
-    ctx.shadowBlur = 36;
-    ctx.shadowOffsetY = 6;
-    ctx.fillStyle = '#000';
-    ctx.beginPath();
-    ctx.roundRect(BOARD_X - 4, BOARD_Y - 4, BOARD_SIZE + 8, BOARD_SIZE + 8, 6);
-    ctx.fill();
-    ctx.restore();
+    const vignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.15, W / 2, H / 2, W * 0.78);
+    vignette.addColorStop(0, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,0.60)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, W, H);
 
-    for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 6; col++) {
-        const x = BOARD_X + col * CELL;
-        const y = BOARD_Y + row * CELL;
-        const isDark = (row + col) % 2 === 1;
-        const idx = row * 6 + col;
-        const isFrom = lastMove && lastMove.from === idx;
-        const isTo = lastMove && lastMove.to === idx;
+    ctx.strokeStyle = 'rgba(255,255,255,0.88)';
+    ctx.lineWidth = LINE_W;
+    ctx.lineCap = 'round';
 
-        if (isFrom || isTo) {
-          ctx.fillStyle = isDark ? 'rgba(230,200,80,0.55)' : 'rgba(230,200,80,0.35)';
-        } else {
-          ctx.fillStyle = isDark ? '#2a2a2a' : '#e8e0d0';
-        }
-        ctx.fillRect(x, y, CELL, CELL);
+    for (let i = 1; i < 3; i++) {
+      const x = GRID_X + CELL * i;
+      ctx.beginPath();
+      ctx.moveTo(x, GRID_Y + 24);
+      ctx.lineTo(x, GRID_Y + GRID_SIZE - 24);
+      ctx.stroke();
+    }
+
+    for (let i = 1; i < 3; i++) {
+      const y = GRID_Y + CELL * i;
+      ctx.beginPath();
+      ctx.moveTo(GRID_X + 24, y);
+      ctx.lineTo(GRID_X + GRID_SIZE - 24, y);
+      ctx.stroke();
+    }
+
+    for (let i = 0; i < 9; i++) {
+      const col = i % 3;
+      const row = Math.floor(i / 3);
+      const cx = GRID_X + CELL * col + CELL / 2;
+      const cy = GRID_Y + CELL * row + CELL / 2;
+      const isWin = winLine ? winLine.includes(i) : false;
+
+      if (board[i] === 'X') {
+        drawX(ctx, cx, cy, CELL * 0.30, isWin);
+      } else if (board[i] === 'O') {
+        drawO(ctx, cx, cy, CELL * 0.28, isWin);
+      } else {
+        ctx.fillStyle = 'rgba(255,255,255,0.28)';
+        ctx.font = 'bold 88px Inter, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(String(i + 1), cx, cy);
       }
     }
 
-    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
-    ctx.lineWidth = 1;
-    for (let i = 0; i <= 6; i++) {
-      ctx.beginPath();
-      ctx.moveTo(BOARD_X + i * CELL, BOARD_Y);
-      ctx.lineTo(BOARD_X + i * CELL, BOARD_Y + BOARD_SIZE);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(BOARD_X, BOARD_Y + i * CELL);
-      ctx.lineTo(BOARD_X + BOARD_SIZE, BOARD_Y + i * CELL);
-      ctx.stroke();
-    }
-
-    ctx.font = 'bold 52px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = 'rgba(255,255,255,0.90)';
-
-    for (let col = 0; col < 6; col++) {
-      const label = String.fromCharCode(65 + col);
-      const x = BOARD_X + col * CELL + CELL / 2;
-      ctx.fillText(label, x, BOARD_Y - LABEL_AREA / 2);
-      ctx.fillText(label, x, BOARD_Y + BOARD_SIZE + LABEL_AREA / 2);
-    }
-    for (let row = 0; row < 6; row++) {
-      const label = String(6 - row);
-      const y = BOARD_Y + row * CELL + CELL / 2;
-      ctx.fillText(label, BOARD_X - LABEL_AREA / 2, y);
-      ctx.fillText(label, BOARD_X + BOARD_SIZE + LABEL_AREA / 2, y);
-    }
-
-    for (let idx = 0; idx < 36; idx++) {
-      const piece = board[idx];
-      if (!piece) continue;
-
-      const col = idx % 6;
-      const row = Math.floor(idx / 6);
-      const cx = BOARD_X + col * CELL + CELL / 2;
-      const cy = BOARD_Y + row * CELL + CELL / 2;
-      const r = CELL * 0.38;
-
-      const isRed = piece === 'r' || piece === 'R';
-      const isKing = piece === 'R' || piece === 'B';
-      const baseColor = isRed ? '#c0392b' : '#f0f0f0';
-      const rimColor = isRed ? '#7b241c' : '#999999';
-
-      const drawShape = (offsetY, radius) => {
-        ctx.beginPath();
-        if (isKing) {
-          for (let i = 0; i < 5; i++) {
-            const angle = (i * 2 * Math.PI) / 5 - Math.PI / 2;
-            const px = cx + Math.cos(angle) * radius;
-            const py = cy + offsetY + Math.sin(angle) * radius;
-            i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py);
-          }
-          ctx.closePath();
-        } else {
-          ctx.arc(cx, cy + offsetY, radius, 0, Math.PI * 2);
-        }
-      };
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.6)';
-      ctx.shadowBlur = 12;
-      ctx.shadowOffsetY = 4;
-      ctx.fillStyle = rimColor;
-      drawShape(4, r);
-      ctx.fill();
-      ctx.restore();
-
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.3)';
-      ctx.shadowBlur = 6;
-      ctx.fillStyle = baseColor;
-      drawShape(0, r);
-      ctx.fill();
-      ctx.restore();
-
-      const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.05, cx, cy, r);
-      grad.addColorStop(0, isRed ? 'rgba(255,120,100,0.55)' : 'rgba(255,255,255,0.70)');
-      grad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = grad;
-      drawShape(0, r);
-      ctx.fill();
-
-      ctx.strokeStyle = isRed ? 'rgba(255,180,160,0.35)' : 'rgba(100,100,100,0.40)';
-      ctx.lineWidth = 3;
-      drawShape(0, r * 0.72);
-      ctx.stroke();
+    if (winLine) {
+      const getCenter = (i) => ({
+        x: GRID_X + (i % 3) * CELL + CELL / 2,
+        y: GRID_Y + Math.floor(i / 3) * CELL + CELL / 2,
+      });
+      const a = getCenter(winLine[0]);
+      const b = getCenter(winLine[2]);
+      drawWinStrike(ctx, a, b);
     }
 
     ctx.restore();
@@ -217,4 +217,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send('Erro na geração');
   }
-}
+    }
