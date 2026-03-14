@@ -72,7 +72,7 @@ export default async function handler(req, res) {
     const ctx = canvas.getContext('2d');
 
     try {
-      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/76f9e52a.jpg";
+      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/f967b450.jpg";
       const response = await fetch(bgUrl);
       
       if (!response.ok) throw new Error(`HTTP ${response.status}`);
