@@ -18,7 +18,7 @@ function drawX(ctx, cx, cy, r, highlight) {
   ctx.shadowColor = color;
   ctx.shadowBlur = highlight ? 40 : 20;
   ctx.strokeStyle = color;
-  ctx.lineWidth = highlight ? 22 : 18;
+  ctx.lineWidth = highlight ? 30 : 26;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.moveTo(cx - r, cy - r);
@@ -37,10 +37,64 @@ function drawO(ctx, cx, cy, r, highlight) {
   ctx.shadowColor = color;
   ctx.shadowBlur = highlight ? 40 : 20;
   ctx.strokeStyle = color;
-  ctx.lineWidth = highlight ? 22 : 18;
+  ctx.lineWidth = highlight ? 30 : 26;
   ctx.beginPath();
   ctx.arc(cx, cy, r, 0, Math.PI * 2);
   ctx.stroke();
+  ctx.restore();
+}
+
+function drawGlassStrike(ctx, a, b, W, H) {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / len;
+  const uy = dy / len;
+  const hw = 30;
+  const ext = hw;
+
+  const p0x = a.x - ux * ext;
+  const p0y = a.y - uy * ext;
+  const p1x = b.x + ux * ext;
+  const p1y = b.y + uy * ext;
+
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0)';
+  ctx.lineWidth = hw * 2;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(p0x, p0y);
+  ctx.lineTo(p1x, p1y);
+
+  const tempCanvas = createCanvas(W, H);
+  const tempCtx = tempCanvas.getContext('2d');
+  tempCtx.fillStyle = '#0f1117';
+  tempCtx.fillRect(0, 0, W, H);
+
+  ctx.save();
+  ctx.lineWidth = hw * 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = '#000';
+  ctx.beginPath();
+  ctx.moveTo(p0x, p0y);
+  ctx.lineTo(p1x, p1y);
+  ctx.clip();
+
+  ctx.filter = 'blur(20px)';
+  ctx.drawImage(tempCanvas, 0, 0);
+  ctx.filter = 'none';
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+  ctx.fillRect(0, 0, W, H);
+  ctx.restore();
+
+  ctx.lineWidth = hw * 2;
+  ctx.lineCap = 'round';
+  ctx.strokeStyle = 'rgba(255, 255, 255, 0.75)';
+  ctx.beginPath();
+  ctx.moveTo(p0x, p0y);
+  ctx.lineTo(p1x, p1y);
+  ctx.stroke();
+
   ctx.restore();
 }
 
@@ -104,9 +158,9 @@ export default async function handler(req, res) {
 
     const W = DESIGN_RES;
     const H = DESIGN_RES;
-    const CARD_RADIUS = 80;
+    const CARD_RADIUS = 140;
 
-    const GRID_SIZE = 780;
+    const GRID_SIZE = 900;
     const GRID_X = (W - GRID_SIZE) / 2;
     const GRID_Y = (H - GRID_SIZE) / 2;
     const CELL = GRID_SIZE / 3;
@@ -179,80 +233,8 @@ export default async function handler(req, res) {
       });
       const a = getCenter(winLine[0]);
       const b = getCenter(winLine[2]);
-
-      ctx.save();
-      ctx.shadowColor = '#ffffff';
-      ctx.shadowBlur = 32;
-      ctx.strokeStyle = 'rgba(255,255,255,0.90)';
-      ctx.lineWidth = 18;
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      ctx.shadowBlur = 60;
-      ctx.strokeStyle = 'rgba(255,255,255,0.30)';
-      ctx.lineWidth = 36;
-      ctx.beginPath();
-      ctx.moveTo(a.x, a.y);
-      ctx.lineTo(b.x, b.y);
-      ctx.stroke();
-      ctx.restore();
+      drawGlassStrike(ctx, a, b, W, H);
     }
-
-    const footerY = H - 84;
-    const footerW = GRID_SIZE;
-    const footerX = GRID_X;
-
-    ctx.fillStyle = 'rgba(255,255,255,0.07)';
-    ctx.beginPath();
-    ctx.roundRect(footerX, footerY - 38, footerW, 76, 38);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-    ctx.lineWidth = 1;
-    ctx.stroke();
-
-    const legendCY = footerY;
-    const dotR = 12;
-    const blockW = 260;
-    const blockGap = 60;
-    const totalW = blockW * 2 + blockGap;
-    const startX = W / 2 - totalW / 2;
-
-    ctx.save();
-    ctx.shadowColor = '#e63946';
-    ctx.shadowBlur = 14;
-    ctx.strokeStyle = '#e63946';
-    ctx.lineWidth = 5;
-    ctx.lineCap = 'round';
-    const xIx = startX + dotR;
-    ctx.beginPath(); ctx.moveTo(xIx - dotR * 0.72, legendCY - dotR * 0.72); ctx.lineTo(xIx + dotR * 0.72, legendCY + dotR * 0.72); ctx.stroke();
-    ctx.beginPath(); ctx.moveTo(xIx + dotR * 0.72, legendCY - dotR * 0.72); ctx.lineTo(xIx - dotR * 0.72, legendCY + dotR * 0.72); ctx.stroke();
-    ctx.restore();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.font = 'bold 34px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Jogador X', xIx + dotR + 16, legendCY);
-
-    const oIx = startX + blockW + blockGap + dotR;
-
-    ctx.save();
-    ctx.shadowColor = '#4dabf7';
-    ctx.shadowBlur = 14;
-    ctx.strokeStyle = '#4dabf7';
-    ctx.lineWidth = 5;
-    ctx.beginPath();
-    ctx.arc(oIx, legendCY, dotR, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.78)';
-    ctx.font = 'bold 34px Inter, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Jogador O', oIx + dotR + 16, legendCY);
 
     ctx.restore();
 
