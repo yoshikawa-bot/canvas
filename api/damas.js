@@ -12,6 +12,17 @@ try {
   }
 } catch (e) {}
 
+function getInitialBoard() {
+  const board = Array(36).fill(null);
+  for (let row = 0; row < 2; row++)
+    for (let col = 0; col < 6; col++)
+      if ((row + col) % 2 === 1) board[row * 6 + col] = 'b';
+  for (let row = 4; row < 6; row++)
+    for (let col = 0; col < 6; col++)
+      if ((row + col) % 2 === 1) board[row * 6 + col] = 'r';
+  return board;
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
@@ -30,16 +41,12 @@ export default async function handler(req, res) {
 
     let board;
     if (typeof rawBoard === 'string') {
-      try {
-        board = JSON.parse(rawBoard);
-      } catch {
-        board = null;
-      }
+      try { board = JSON.parse(rawBoard); } catch { board = null; }
     } else if (Array.isArray(rawBoard)) {
       board = rawBoard;
     }
 
-    if (!board || !Array.isArray(board) || board.length !== 64) {
+    if (!board || !Array.isArray(board) || board.length !== 36) {
       board = getInitialBoard();
     }
 
@@ -47,9 +54,7 @@ export default async function handler(req, res) {
     if (rawLastMove) {
       try {
         lastMove = typeof rawLastMove === 'string' ? JSON.parse(rawLastMove) : rawLastMove;
-      } catch {
-        lastMove = null;
-      }
+      } catch { lastMove = null; }
     }
 
     const FINAL_CANVAS_SIZE = 1080;
@@ -61,12 +66,12 @@ export default async function handler(req, res) {
 
     const W = DESIGN_RES;
     const H = DESIGN_RES;
-    const CARD_RADIUS = 140;
-
-    const BOARD_SIZE = 900;
-    const BOARD_X = (W - BOARD_SIZE) / 2;
-    const BOARD_Y = (H - BOARD_SIZE) / 2;
-    const CELL = BOARD_SIZE / 8;
+    const CARD_RADIUS = 120;
+    const LABEL_AREA = 90;
+    const BOARD_SIZE = W - LABEL_AREA * 2 - 80;
+    const BOARD_X = LABEL_AREA + 40;
+    const BOARD_Y = LABEL_AREA + 40;
+    const CELL = BOARD_SIZE / 6;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx = canvas.getContext('2d');
@@ -79,39 +84,40 @@ export default async function handler(req, res) {
     ctx.roundRect(0, 0, W, H, CARD_RADIUS);
     ctx.clip();
 
-    ctx.fillStyle = '#0f1117';
+    ctx.fillStyle = '#1a1a1a';
     ctx.fillRect(0, 0, W, H);
 
-    const vignette = ctx.createRadialGradient(W / 2, H / 2, W * 0.1, W / 2, H / 2, W * 0.75);
-    vignette.addColorStop(0, 'rgba(0,0,0,0)');
-    vignette.addColorStop(1, 'rgba(0,0,0,0.55)');
-    ctx.fillStyle = vignette;
-    ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.9)';
+    ctx.shadowBlur = 36;
+    ctx.shadowOffsetY = 6;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.roundRect(BOARD_X - 4, BOARD_Y - 4, BOARD_SIZE + 8, BOARD_SIZE + 8, 6);
+    ctx.fill();
+    ctx.restore();
 
-    for (let row = 0; row < 8; row++) {
-      for (let col = 0; col < 8; col++) {
+    for (let row = 0; row < 6; row++) {
+      for (let col = 0; col < 6; col++) {
         const x = BOARD_X + col * CELL;
         const y = BOARD_Y + row * CELL;
         const isDark = (row + col) % 2 === 1;
+        const idx = row * 6 + col;
+        const isFrom = lastMove && lastMove.from === idx;
+        const isTo = lastMove && lastMove.to === idx;
 
-        if (isDark) {
-          const idx = row * 8 + col;
-          const isLastMoveFrom = lastMove && lastMove.from === idx;
-          const isLastMoveTo = lastMove && lastMove.to === idx;
-
-          if (isLastMoveFrom || isLastMoveTo) {
-            ctx.fillStyle = 'rgba(255,255,255,0.12)';
-          } else {
-            ctx.fillStyle = 'rgba(255,255,255,0.055)';
-          }
-          ctx.fillRect(x, y, CELL, CELL);
+        if (isFrom || isTo) {
+          ctx.fillStyle = isDark ? 'rgba(230,200,80,0.55)' : 'rgba(230,200,80,0.35)';
+        } else {
+          ctx.fillStyle = isDark ? '#2a2a2a' : '#e8e0d0';
         }
+        ctx.fillRect(x, y, CELL, CELL);
       }
     }
 
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+    ctx.strokeStyle = 'rgba(0,0,0,0.4)';
     ctx.lineWidth = 1;
-    for (let i = 0; i <= 8; i++) {
+    for (let i = 0; i <= 6; i++) {
       ctx.beginPath();
       ctx.moveTo(BOARD_X + i * CELL, BOARD_Y);
       ctx.lineTo(BOARD_X + i * CELL, BOARD_Y + BOARD_SIZE);
@@ -122,64 +128,81 @@ export default async function handler(req, res) {
       ctx.stroke();
     }
 
-    ctx.fillStyle = 'rgba(255,255,255,0.22)';
-    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.font = 'bold 52px Inter, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'rgba(255,255,255,0.90)';
 
-    for (let col = 0; col < 8; col++) {
+    for (let col = 0; col < 6; col++) {
       const label = String.fromCharCode(65 + col);
-      ctx.fillText(label, BOARD_X + col * CELL + CELL / 2, BOARD_Y - 22);
-      ctx.fillText(label, BOARD_X + col * CELL + CELL / 2, BOARD_Y + BOARD_SIZE + 22);
+      const x = BOARD_X + col * CELL + CELL / 2;
+      ctx.fillText(label, x, BOARD_Y - LABEL_AREA / 2);
+      ctx.fillText(label, x, BOARD_Y + BOARD_SIZE + LABEL_AREA / 2);
     }
-    for (let row = 0; row < 8; row++) {
-      const label = String(8 - row);
-      ctx.fillText(label, BOARD_X - 22, BOARD_Y + row * CELL + CELL / 2);
-      ctx.fillText(label, BOARD_X + BOARD_SIZE + 22, BOARD_Y + row * CELL + CELL / 2);
+    for (let row = 0; row < 6; row++) {
+      const label = String(6 - row);
+      const y = BOARD_Y + row * CELL + CELL / 2;
+      ctx.fillText(label, BOARD_X - LABEL_AREA / 2, y);
+      ctx.fillText(label, BOARD_X + BOARD_SIZE + LABEL_AREA / 2, y);
     }
 
-    for (let idx = 0; idx < 64; idx++) {
+    for (let idx = 0; idx < 36; idx++) {
       const piece = board[idx];
       if (!piece) continue;
 
-      const col = idx % 8;
-      const row = Math.floor(idx / 8);
+      const col = idx % 6;
+      const row = Math.floor(idx / 6);
       const cx = BOARD_X + col * CELL + CELL / 2;
       const cy = BOARD_Y + row * CELL + CELL / 2;
-      const r = CELL * 0.36;
+      const r = CELL * 0.38;
 
       const isRed = piece === 'r' || piece === 'R';
       const isKing = piece === 'R' || piece === 'B';
-
-      const color = isRed ? '#e63946' : '#4dabf7';
-      const glowColor = isRed ? '#e63946' : '#4dabf7';
+      const baseColor = isRed ? '#c0392b' : '#f0f0f0';
+      const rimColor = isRed ? '#7b241c' : '#999999';
 
       ctx.save();
-      ctx.shadowColor = glowColor;
-      ctx.shadowBlur = 18;
-      ctx.fillStyle = color;
+      ctx.shadowColor = 'rgba(0,0,0,0.6)';
+      ctx.shadowBlur = 12;
+      ctx.shadowOffsetY = 4;
+      ctx.fillStyle = rimColor;
+      ctx.beginPath();
+      ctx.arc(cx, cy + 4, r, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.3)';
+      ctx.shadowBlur = 6;
+      ctx.fillStyle = baseColor;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
 
-      ctx.save();
-      ctx.strokeStyle = 'rgba(255,255,255,0.25)';
-      ctx.lineWidth = 3;
+      const grad = ctx.createRadialGradient(cx - r * 0.3, cy - r * 0.3, r * 0.05, cx, cy, r);
+      grad.addColorStop(0, isRed ? 'rgba(255,120,100,0.55)' : 'rgba(255,255,255,0.70)');
+      grad.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = grad;
       ctx.beginPath();
       ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = isRed ? 'rgba(255,180,160,0.35)' : 'rgba(100,100,100,0.40)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r * 0.72, 0, Math.PI * 2);
       ctx.stroke();
-      ctx.restore();
 
       if (isKing) {
         ctx.save();
-        ctx.shadowColor = '#ffffff';
-        ctx.shadowBlur = 10;
-        ctx.fillStyle = 'rgba(255,255,255,0.90)';
-        ctx.font = `bold ${Math.round(r * 0.90)}px Inter, sans-serif`;
+        ctx.shadowColor = isRed ? '#fff' : '#333';
+        ctx.shadowBlur = 8;
+        ctx.fillStyle = isRed ? 'rgba(255,255,255,0.95)' : 'rgba(40,40,40,0.95)';
+        ctx.font = `bold ${Math.round(r * 0.82)}px Inter, sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('♛', cx, cy + r * 0.05);
+        ctx.fillText('♛', cx, cy + r * 0.04);
         ctx.restore();
       }
     }
@@ -195,23 +218,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send('Erro na geração');
   }
-}
-
-function getInitialBoard() {
-  const board = Array(64).fill(null);
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row * 8 + col] = 'b';
-      }
-    }
   }
-  for (let row = 5; row < 8; row++) {
-    for (let col = 0; col < 8; col++) {
-      if ((row + col) % 2 === 1) {
-        board[row * 8 + col] = 'r';
-      }
-    }
-  }
-  return board;
-}
