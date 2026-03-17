@@ -172,16 +172,50 @@ export default async function handler(req, res) {
     drawBody(ctx, bodyX, ropeBottomY, erros);
 
     const metaY = gallowsY + gallowsH + 60;
+    let metaBlockH = 0;
+
     if (rawTema || rawDica) {
-      ctx.fillStyle = 'rgba(255,255,255,0.55)';
       ctx.font = '500 34px Inter, sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      const metaText = [rawTema && `Tema: ${rawTema}`, rawDica && `Dica: ${rawDica}`].filter(Boolean).join('   •   ');
-      ctx.fillText(metaText, W / 2, metaY);
+
+      const maxW = W - 120;
+      const lineH = 48;
+      const lines = [];
+
+      const addLine = (label, value) => {
+        if (!value) return;
+        const full = `${label}: ${value}`;
+        if (ctx.measureText(full).width <= maxW) {
+          lines.push(full);
+        } else {
+          lines.push(`${label}:`);
+          const words = value.split(' ');
+          let current = '';
+          for (const word of words) {
+            const test = current ? `${current} ${word}` : word;
+            if (ctx.measureText(test).width <= maxW) {
+              current = test;
+            } else {
+              if (current) lines.push(current);
+              current = word;
+            }
+          }
+          if (current) lines.push(current);
+        }
+      };
+
+      addLine('Tema', rawTema);
+      addLine('Dica', rawDica);
+
+      metaBlockH = lines.length * lineH;
+      ctx.fillStyle = 'rgba(255,255,255,0.55)';
+      lines.forEach((line, i) => {
+        ctx.fillText(line, W / 2, metaY + i * lineH);
+      });
     }
 
-    const wordY   = metaY + 80;
+    const wordY   = metaY + metaBlockH + 50;
     const charW   = 90;
     const charGap = 16;
     const totalW  = palavraChars.length * charW + (palavraChars.length - 1) * charGap;
@@ -264,4 +298,4 @@ export default async function handler(req, res) {
     console.error(e);
     res.status(500).send('Erro na geração');
   }
-               }
+}
