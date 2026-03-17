@@ -216,15 +216,24 @@ export default async function handler(req, res) {
     }
 
     const wordY   = metaY + metaBlockH + 50;
-    const charW   = 90;
-    const charGap = 16;
-    const totalW  = palavraChars.length * charW + (palavraChars.length - 1) * charGap;
-    const startX  = (W - totalW) / 2;
+    const maxWordW = W - 80;
+    const nonSpaceCount = palavraChars.filter(c => c !== ' ').length;
+    const spaceCount    = palavraChars.filter(c => c === ' ').length;
+    const charGap = 12;
+    const spaceW  = 40;
+    const charW   = Math.min(90, Math.floor(
+      (maxWordW - spaceCount * spaceW - (palavraChars.length - 1) * charGap) / Math.max(nonSpaceCount, 1)
+    ));
+    const fontSize = Math.min(58, Math.floor(charW * 0.65));
+    const totalW  = palavraChars.reduce((acc, c) => acc + (c === ' ' ? spaceW : charW) + charGap, -charGap);
+    let curX      = (W - totalW) / 2;
 
     for (let i = 0; i < palavraChars.length; i++) {
-      const char    = palavraChars[i];
-      const cx      = startX + i * (charW + charGap) + charW / 2;
-      const lineY   = wordY + 60;
+      const char  = palavraChars[i];
+      const cw    = char === ' ' ? spaceW : charW;
+      const cx    = curX + cw / 2;
+      const lineY = wordY + 60;
+      curX += cw + charGap;
 
       if (char === ' ') continue;
 
@@ -235,13 +244,13 @@ export default async function handler(req, res) {
       ctx.strokeStyle = 'rgba(255,255,255,0.60)';
       ctx.lineWidth   = 3;
       ctx.beginPath();
-      ctx.moveTo(cx - charW * 0.42, lineY);
-      ctx.lineTo(cx + charW * 0.42, lineY);
+      ctx.moveTo(cx - cw * 0.42, lineY);
+      ctx.lineTo(cx + cw * 0.42, lineY);
       ctx.stroke();
 
       if (revealed) {
         ctx.fillStyle    = '#ffffff';
-        ctx.font         = `bold 58px Inter, sans-serif`;
+        ctx.font         = `bold ${fontSize}px Inter, sans-serif`;
         ctx.textAlign    = 'center';
         ctx.textBaseline = 'alphabetic';
         ctx.fillText(char.toUpperCase(), cx, lineY - 8);
