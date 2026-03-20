@@ -168,9 +168,9 @@ export default async function handler(req, res) {
     }
 
     const brandText = 'YOSHIKAWA SYSTEMS';
-    ctx.font = 'bold 22px Inter, sans-serif';
+    ctx.font = 'bold 24px Inter, sans-serif';
     const brandW = ctx.measureText(brandText).width + 56;
-    const brandX = W - PAD - brandW;
+    const brandX = badgeX + badgeW + 16;
     const brandY = badgeY;
 
     ctx.save();
