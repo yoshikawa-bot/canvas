@@ -42,7 +42,6 @@ export default async function handler(req, res) {
     const year      = q?.year    || '';
     const genres    = q?.genres  || '';
     const meta      = q?.meta    || '';
-    const playerUrl = q?.url     || '';
     const tipo      = q?.tipo    || 'movie';
 
     const FINAL_CANVAS_SIZE = 1080;
@@ -79,12 +78,15 @@ export default async function handler(req, res) {
     }
 
     if (posterImg) {
-      const scale  = Math.max(W / posterImg.width, H / posterImg.height);
+      const BG_ZOOM = 1.9;
+      const scale  = Math.max(W / posterImg.width, H / posterImg.height) * BG_ZOOM;
       const pw     = posterImg.width  * scale;
       const ph     = posterImg.height * scale;
       const px     = (W - pw) / 2;
       const py     = (H - ph) / 2;
+      ctx.filter = 'blur(28px)';
       ctx.drawImage(posterImg, px, py, pw, ph);
+      ctx.filter = 'none';
     }
 
     const grad = ctx.createLinearGradient(0, 0, 0, H);
@@ -146,34 +148,11 @@ export default async function handler(req, res) {
       });
     }
 
-    if (playerUrl) {
-      const barH  = 72;
-      const barY  = H - barH - 28;
-      const barW  = W - PAD * 2;
-
-      ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.10)';
-      ctx.beginPath();
-      ctx.roundRect(PAD, barY, barW, barH, 16);
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.15)';
-      ctx.lineWidth   = 1;
-      ctx.stroke();
-      ctx.restore();
-
-      ctx.font         = '500 28px Inter, sans-serif';
-      ctx.fillStyle    = 'rgba(255,255,255,0.80)';
-      ctx.textAlign    = 'left';
-      ctx.textBaseline = 'middle';
-
-      const maxUrlW = barW - 32;
-      let displayUrl = playerUrl;
-      while (ctx.measureText(displayUrl).width > maxUrlW && displayUrl.length > 10) {
-        displayUrl = displayUrl.slice(0, -1);
-      }
-      if (displayUrl !== playerUrl) displayUrl += '…';
-      ctx.fillText(displayUrl, PAD + 16, barY + barH / 2);
-    }
+    ctx.font         = '500 28px Inter, sans-serif';
+    ctx.fillStyle    = 'rgba(255,255,255,0.30)';
+    ctx.textAlign    = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Yoshikawa Systems', W - PAD, H - 40);
 
     ctx.restore();
 
