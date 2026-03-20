@@ -79,7 +79,6 @@ export default async function handler(req, res) {
 
     const PAD    = 64;
     const INFO_Y = H - 320;
-    const BLUR_START = INFO_Y - 200;
 
     if (posterImg) {
       const scale = Math.max(W / posterImg.width, H / posterImg.height);
@@ -87,62 +86,46 @@ export default async function handler(req, res) {
       const ph    = posterImg.height * scale;
       const px    = (W - pw) / 2;
       const py    = (H - ph) / 2;
-
-      // camada nítida — imagem inteira
       ctx.drawImage(posterImg, px, py, pw, ph);
-
-      // camada borrada — clippada só da região de transição pra baixo
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, BLUR_START, W, H - BLUR_START);
-      ctx.clip();
-      ctx.filter = 'blur(28px)';
-      ctx.drawImage(posterImg, px, py, pw, ph);
-      ctx.filter = 'none';
-      ctx.restore();
-
-      // máscara de fusão sobre a transição para suavizar a borda nítido→borrado
-      const mask = ctx.createLinearGradient(0, BLUR_START, 0, BLUR_START + 160);
-      mask.addColorStop(0, 'rgba(0,0,0,0)');
-      mask.addColorStop(1, 'rgba(0,0,0,1)');
-      ctx.save();
-      ctx.globalCompositeOperation = 'destination-out';
-      ctx.fillStyle = mask;
-      ctx.beginPath();
-      ctx.rect(0, BLUR_START, W, 160);
-      ctx.fill();
-      ctx.restore();
-
-      // redesenha a faixa de transição borrada por cima (após o destination-out)
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(0, BLUR_START, W, H - BLUR_START);
-      ctx.clip();
-      ctx.filter = 'blur(28px)';
-      ctx.drawImage(posterImg, px, py, pw, ph);
-      ctx.filter = 'none';
-
-      // mascara alpha sobre a faixa de transição para fundir suavemente
-      const blendMask = ctx.createLinearGradient(0, BLUR_START, 0, BLUR_START + 160);
-      blendMask.addColorStop(0, 'rgba(0,0,0,0)');
-      blendMask.addColorStop(1, 'rgba(0,0,0,1)');
-      ctx.globalCompositeOperation = 'destination-in';
-      ctx.fillStyle = blendMask;
-      ctx.fillRect(0, BLUR_START, W, 160);
-      ctx.restore();
     }
 
-    // badge tipo — medir texto antes de desenhar o fundo
+    const grad = ctx.createLinearGradient(0, INFO_Y - 280, 0, H);
+    grad.addColorStop(0,    'rgba(0,0,0,0)');
+    grad.addColorStop(0.25, 'rgba(0,0,0,0.45)');
+    grad.addColorStop(0.6,  'rgba(0,0,0,0.72)');
+    grad.addColorStop(1,    'rgba(0,0,0,0.88)');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
     const badge = tipo === 'movie' ? 'FILME' : tipo === 'tv' ? 'SÉRIE' : 'ANIME';
     ctx.font = 'bold 24px Inter, sans-serif';
     const badgeW = ctx.measureText(badge).width + 56;
     const badgeH = 40;
     const badgeX = PAD;
     const badgeY = INFO_Y - 60;
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
+
+    ctx.save();
     ctx.beginPath();
     ctx.roundRect(badgeX, badgeY, badgeW, badgeH, badgeH / 2);
-    ctx.fill();
+    ctx.clip();
+    if (posterImg) {
+      const scale = Math.max(W / posterImg.width, H / posterImg.height);
+      const pw    = posterImg.width  * scale;
+      const ph    = posterImg.height * scale;
+      ctx.filter = 'blur(20px)';
+      ctx.drawImage(posterImg, (W - pw) / 2, (H - ph) / 2, pw, ph);
+      ctx.filter = 'none';
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, badgeH / 2);
+    ctx.stroke();
+
     ctx.fillStyle    = 'rgba(255,255,255,0.90)';
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
