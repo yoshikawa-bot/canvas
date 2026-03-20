@@ -51,7 +51,7 @@ export default async function handler(req, res) {
     const DESIGN_RES        = 1080;
     const scaleFactor       = stickerActualSize / DESIGN_RES;
 
-    const W = DESIGN_RES, H = DESIGN_RES, CARD_RADIUS = 80;
+    const W = DESIGN_RES, H = DESIGN_RES, CARD_RADIUS = 140;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
     const ctx    = canvas.getContext('2d');
@@ -77,30 +77,60 @@ export default async function handler(req, res) {
       } catch {}
     }
 
+    const PAD    = 64;
+    const INFO_Y = H - 320;
+    const BLUR_START = INFO_Y - 200;
+
     if (posterImg) {
-      const BG_ZOOM = 1.9;
-      const scale  = Math.max(W / posterImg.width, H / posterImg.height) * BG_ZOOM;
-      const pw     = posterImg.width  * scale;
-      const ph     = posterImg.height * scale;
-      const px     = (W - pw) / 2;
-      const py     = (H - ph) / 2;
+      const scale = Math.max(W / posterImg.width, H / posterImg.height);
+      const pw    = posterImg.width  * scale;
+      const ph    = posterImg.height * scale;
+      const px    = (W - pw) / 2;
+      const py    = (H - ph) / 2;
+
+      // camada nítida — imagem inteira
+      ctx.drawImage(posterImg, px, py, pw, ph);
+
+      // camada borrada — clippada só da região de transição pra baixo
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, BLUR_START, W, H - BLUR_START);
+      ctx.clip();
       ctx.filter = 'blur(28px)';
       ctx.drawImage(posterImg, px, py, pw, ph);
       ctx.filter = 'none';
+      ctx.restore();
+
+      // máscara de fusão sobre a transição para suavizar a borda nítido→borrado
+      const mask = ctx.createLinearGradient(0, BLUR_START, 0, BLUR_START + 160);
+      mask.addColorStop(0, 'rgba(0,0,0,0)');
+      mask.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.save();
+      ctx.globalCompositeOperation = 'destination-out';
+      ctx.fillStyle = mask;
+      ctx.beginPath();
+      ctx.rect(0, BLUR_START, W, 160);
+      ctx.fill();
+      ctx.restore();
+
+      // redesenha a faixa de transição borrada por cima (após o destination-out)
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, BLUR_START, W, H - BLUR_START);
+      ctx.clip();
+      ctx.filter = 'blur(28px)';
+      ctx.drawImage(posterImg, px, py, pw, ph);
+      ctx.filter = 'none';
+
+      // mascara alpha sobre a faixa de transição para fundir suavemente
+      const blendMask = ctx.createLinearGradient(0, BLUR_START, 0, BLUR_START + 160);
+      blendMask.addColorStop(0, 'rgba(0,0,0,0)');
+      blendMask.addColorStop(1, 'rgba(0,0,0,1)');
+      ctx.globalCompositeOperation = 'destination-in';
+      ctx.fillStyle = blendMask;
+      ctx.fillRect(0, BLUR_START, W, 160);
+      ctx.restore();
     }
-
-    const PAD    = 64;
-    const INFO_Y = H - 320;
-
-    // degradê de baixo pra cima, opaco embaixo, transparente logo acima dos textos
-    const blurFadeTop = INFO_Y - 160;
-    const grad = ctx.createLinearGradient(0, blurFadeTop, 0, H);
-    grad.addColorStop(0,    'rgba(0,0,0,0)');
-    grad.addColorStop(0.18, 'rgba(0,0,0,0.55)');
-    grad.addColorStop(0.55, 'rgba(0,0,0,0.88)');
-    grad.addColorStop(1,    'rgba(0,0,0,0.97)');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, W, H);
 
     // badge tipo — medir texto antes de desenhar o fundo
     const badge = tipo === 'movie' ? 'FILME' : tipo === 'tv' ? 'SÉRIE' : 'ANIME';
@@ -156,9 +186,9 @@ export default async function handler(req, res) {
 
     ctx.font         = 'bold 26px Inter, sans-serif';
     ctx.fillStyle    = 'rgba(255,255,255,0.55)';
-    ctx.textAlign    = 'right';
+    ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('YOSHIKAWA SYSTEMS', W - PAD, H - 44);
+    ctx.fillText('YOSHIKAWA SYSTEMS', PAD, H - 44);
 
     ctx.restore();
 
