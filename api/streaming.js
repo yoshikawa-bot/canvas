@@ -89,28 +89,34 @@ export default async function handler(req, res) {
       ctx.filter = 'none';
     }
 
-    const grad = ctx.createLinearGradient(0, 0, 0, H);
-    grad.addColorStop(0,    'rgba(0,0,0,0.15)');
-    grad.addColorStop(0.35, 'rgba(0,0,0,0.05)');
-    grad.addColorStop(0.62, 'rgba(0,0,0,0.55)');
-    grad.addColorStop(1,    'rgba(0,0,0,0.95)');
+    const PAD    = 64;
+    const INFO_Y = H - 320;
+
+    // degradê de baixo pra cima, opaco embaixo, transparente logo acima dos textos
+    const blurFadeTop = INFO_Y - 160;
+    const grad = ctx.createLinearGradient(0, blurFadeTop, 0, H);
+    grad.addColorStop(0,    'rgba(0,0,0,0)');
+    grad.addColorStop(0.18, 'rgba(0,0,0,0.55)');
+    grad.addColorStop(0.55, 'rgba(0,0,0,0.88)');
+    grad.addColorStop(1,    'rgba(0,0,0,0.97)');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, W, H);
 
-    const PAD   = 64;
-    const INFO_Y = H - 320;
-
+    // badge tipo — medir texto antes de desenhar o fundo
     const badge = tipo === 'movie' ? 'FILME' : tipo === 'tv' ? 'SÉRIE' : 'ANIME';
-    ctx.fillStyle    = 'rgba(255,255,255,0.15)';
+    ctx.font = 'bold 24px Inter, sans-serif';
+    const badgeW = ctx.measureText(badge).width + 56;
+    const badgeH = 40;
+    const badgeX = PAD;
+    const badgeY = INFO_Y - 60;
+    ctx.fillStyle = 'rgba(255,255,255,0.18)';
     ctx.beginPath();
-    ctx.roundRect(PAD, INFO_Y - 52, ctx.measureText(badge).width + 48, 36, 18);
+    ctx.roundRect(badgeX, badgeY, badgeW, badgeH, badgeH / 2);
     ctx.fill();
-    ctx.font         = '500 22px Inter, sans-serif';
-    ctx.fillStyle    = 'rgba(255,255,255,0.85)';
+    ctx.fillStyle    = 'rgba(255,255,255,0.90)';
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
-    ctx.font         = 'bold 22px Inter, sans-serif';
-    ctx.fillText(badge, PAD + 24, INFO_Y - 34);
+    ctx.fillText(badge, badgeX + 28, badgeY + badgeH / 2);
 
     let titleFontSize = 72;
     ctx.font = `bold ${titleFontSize}px Inter, sans-serif`;
@@ -148,11 +154,11 @@ export default async function handler(req, res) {
       });
     }
 
-    ctx.font         = '500 28px Inter, sans-serif';
-    ctx.fillStyle    = 'rgba(255,255,255,0.30)';
+    ctx.font         = 'bold 26px Inter, sans-serif';
+    ctx.fillStyle    = 'rgba(255,255,255,0.55)';
     ctx.textAlign    = 'right';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Yoshikawa Systems', W - PAD, H - 40);
+    ctx.fillText('YOSHIKAWA SYSTEMS', W - PAD, H - 44);
 
     ctx.restore();
 
