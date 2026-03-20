@@ -167,11 +167,38 @@ export default async function handler(req, res) {
       });
     }
 
-    ctx.font         = 'bold 26px Inter, sans-serif';
-    ctx.fillStyle    = 'rgba(255,255,255,0.55)';
+    const brandText = 'YOSHIKAWA SYSTEMS';
+    ctx.font = 'bold 22px Inter, sans-serif';
+    const brandW = ctx.measureText(brandText).width + 56;
+    const brandX = W - PAD - brandW;
+    const brandY = badgeY;
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.roundRect(brandX, brandY, brandW, badgeH, badgeH / 2);
+    ctx.clip();
+    if (posterImg) {
+      const scale = Math.max(W / posterImg.width, H / posterImg.height);
+      const pw    = posterImg.width  * scale;
+      const ph    = posterImg.height * scale;
+      ctx.filter = 'blur(20px)';
+      ctx.drawImage(posterImg, (W - pw) / 2, (H - ph) / 2, pw, ph);
+      ctx.filter = 'none';
+    }
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fillRect(brandX, brandY, brandW, badgeH);
+    ctx.restore();
+
+    ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+    ctx.lineWidth   = 1;
+    ctx.beginPath();
+    ctx.roundRect(brandX, brandY, brandW, badgeH, badgeH / 2);
+    ctx.stroke();
+
+    ctx.fillStyle    = 'rgba(255,255,255,0.70)';
     ctx.textAlign    = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText('YOSHIKAWA SYSTEMS', PAD, H - 44);
+    ctx.fillText(brandText, brandX + 28, brandY + badgeH / 2);
 
     ctx.restore();
 
