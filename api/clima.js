@@ -12,6 +12,8 @@ try {
   }
 } catch (e) { }
 
+const RAIN_URL = 'https://yoshikawa-bot.github.io/cache/images/437170b4.png';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   if (req.method === 'OPTIONS') return res.status(200).end();
@@ -39,9 +41,11 @@ export default async function handler(req, res) {
       timeStr = "14:00",
       city = "São Paulo",
       degree = "24°C",
-      theme = "day"
+      theme = "day",
+      rain = "false"
     } = req.method === "POST" ? req.body : req.query;
 
+    const isRaining = rain === "true" || rain === true;
     const backgroundUrl = theme === "night" ? nightBgUrl : theme === "evening" ? eveningBgUrl : dayBgUrl;
 
     const canvas = createCanvas(FINAL_CANVAS_SIZE, FINAL_CANVAS_SIZE);
@@ -77,6 +81,17 @@ export default async function handler(req, res) {
       ctx.fillRect(0, 0, W, H);
     }
 
+    if (isRaining) {
+      try {
+        const rainResponse = await fetch(RAIN_URL);
+        if (rainResponse.ok) {
+          const rainBuf = Buffer.from(await rainResponse.arrayBuffer());
+          const rainImg = await loadImage(rainBuf);
+          ctx.drawImage(rainImg, 0, 0, W, H);
+        }
+      } catch (e) {}
+    }
+
     const commonFontSize = 'bold 48px Inter, sans-serif';
     ctx.fillStyle = '#FFFFFF';
     ctx.font = commonFontSize;
@@ -89,7 +104,7 @@ export default async function handler(req, res) {
     ctx.textAlign = 'right';
     ctx.fillText(timeStr, W - PADDING, topY);
 
-    if (theme === "day") {
+    if (theme === "day" && !isRaining) {
       ctx.fillStyle = '#121212';
     }
 
