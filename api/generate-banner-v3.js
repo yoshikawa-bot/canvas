@@ -7,21 +7,52 @@ const __dirname = path.dirname(__filename);
 
 try {
   const fontPath = path.join(__dirname, '../fonts/Inter_18pt-Bold.ttf');
-  if (!GlobalFonts.has('Inter')) GlobalFonts.registerFromPath(fontPath, 'Inter');
-} catch {}
-
-const BG_URL = 'https://yoshikawa-bot.github.io/cache/images/f967b450.jpg';
-const FALLBACK_AVATAR = 'https://yoshikawa-bot.github.io/cache/images/236744bb.jpg';
-
-async function fetchImage(url) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return loadImage(Buffer.from(await res.arrayBuffer()));
+  if (!GlobalFonts.has('Inter')) {
+    GlobalFonts.registerFromPath(fontPath, 'Inter');
+  }
+} catch (e) {
+  console.log("Não foi possível carregar a fonte Inter. Usando padrão.");
 }
 
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.roundRect(x, y, w, h, r);
+let COLOR_HIGHLIGHT = "#FF6EB4";
+const COLOR_BASE_BG = "rgba(0, 0, 0, 0.5)";
+const COLOR_PROGRESS_BASE = "rgba(255, 255, 255, 0.3)";
+const COLOR_TEXT_TITLE = "#FFFFFF";
+const COLOR_TEXT_TIME = "rgba(255, 255, 255, 0.9)";
+
+function getDominantColor(imageData) {
+  const data = imageData.data;
+  const colorCount = {};
+  let maxCount = 0;
+  let dominantColor = '#FF6EB4';
+
+  for (let i = 0; i < data.length; i += 16) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    
+    const brightness = (r + g + b) / 3;
+    if (brightness < 30 || brightness > 220) continue;
+    
+    const color = `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    colorCount[color] = (colorCount[color] || 0) + 1;
+    
+    if (colorCount[color] > maxCount) {
+      maxCount = colorCount[color];
+      dominantColor = color;
+    }
+  }
+
+  return dominantColor;
+}
+
+function adjustColorBrightness(color, percent) {
+  const num = parseInt(color.replace("#", ""), 16);
+  const amt = Math.round(2.55 * percent);
+  const R = Math.min(255, Math.max(0, (num >> 16) + amt));
+  const G = Math.min(255, Math.max(0, ((num >> 8) & 0x00FF) + amt));
+  const B = Math.min(255, Math.max(0, (num & 0x0000FF) + amt));
+  return `#${((1 << 24) + (R << 16) + (G << 8) + B).toString(16).slice(1)}`;
 }
 
 export default async function handler(req, res) {
@@ -31,272 +62,175 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') return res.status(200).end();
 
   try {
-    const { title = '@username', thumbnail = FALLBACK_AVATAR } =
-      req.method === 'POST' ? req.body : req.query;
+    const { 
+      thumbnail = "https://yoshikawa-bot.github.io/cache/images/236744bb.jpg"
+    } = req.method === "POST" ? req.body : req.query;
 
     const W = 1400;
     const H = 900;
-    const MARGIN = 40;
-    const RADIUS = 80;
-
     const canvas = createCanvas(W, H);
     const ctx = canvas.getContext('2d');
 
-    ctx.save();
-    roundRect(ctx, MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2, RADIUS);
-    ctx.clip();
-
     try {
-      const bg = await fetchImage(BG_URL);
-      ctx.drawImage(bg, MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2);
-    } catch {
-      ctx.fillStyle = '#0C0C0E';
-      ctx.fillRect(MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2);
-    }
-
-    ctx.fillStyle = 'rgba(10, 10, 16, 0.72)';
-    ctx.fillRect(MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2);
-
-    ctx.restore();
-
-    ctx.save();
-    roundRect(ctx, MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2, RADIUS);
-    ctx.clip();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.025)';
-    const radial = ctx.createRadialGradient(W * 0.25, MARGIN, 0, W * 0.25, MARGIN, W * 0.6);
-    radial.addColorStop(0, 'rgba(255,255,255,0.06)');
-    radial.addColorStop(1, 'rgba(255,255,255,0)');
-    ctx.fillStyle = radial;
-    ctx.fillRect(MARGIN, MARGIN, W - MARGIN * 2, H - MARGIN * 2);
-
-    ctx.restore();
-
-    const bW = W - MARGIN * 2;
-    const bH = H - MARGIN * 2;
-    const bX = MARGIN;
-    const bY = MARGIN;
-
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.10)';
-    ctx.lineWidth = 1.5;
-    roundRect(ctx, bX, bY, bW, bH, RADIUS);
-    ctx.stroke();
-    ctx.restore();
-
-    const PAD = 100;
-    const contentY = bY;
-    const contentH = bH;
-
-    const topBarH = 100;
-    const topBarY = contentY + 60;
-
-    const appIconSize = 60;
-    const appIconX = bX + PAD;
-    const appIconY = topBarY + (topBarH - appIconSize) / 2;
-
-    ctx.save();
-    roundRect(ctx, appIconX, appIconY, appIconSize, appIconSize, 16);
-    ctx.clip();
-    const iconGrad = ctx.createLinearGradient(appIconX, appIconY, appIconX + appIconSize, appIconY + appIconSize);
-    iconGrad.addColorStop(0, '#FF6B6B');
-    iconGrad.addColorStop(1, '#FF8E53');
-    ctx.fillStyle = iconGrad;
-    ctx.fillRect(appIconX, appIconY, appIconSize, appIconSize);
-    ctx.restore();
-
-    ctx.save();
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 32px Inter';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🔔', appIconX + appIconSize / 2, appIconY + appIconSize / 2);
-    ctx.restore();
-
-    ctx.fillStyle = 'rgba(255,255,255,0.9)';
-    ctx.font = 'bold 36px Inter';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('Yoshikawa Bot', appIconX + appIconSize + 22, appIconY + appIconSize / 2);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.28)';
-    ctx.font = 'bold 30px Inter';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('agora', bX + bW - PAD, appIconY + appIconSize / 2);
-
-    const dividerY = topBarY + topBarH + 20;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    ctx.moveTo(bX + PAD, dividerY);
-    ctx.lineTo(bX + bW - PAD, dividerY);
-    ctx.stroke();
-    ctx.restore();
-
-    const centerY = dividerY + (contentY + contentH - dividerY) / 2 - 40;
-
-    const avatarSize = 220;
-    const avatarX = bX + PAD;
-    const avatarY = centerY - avatarSize / 2;
-
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.18)';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2 + 6, 0, Math.PI * 2);
-    ctx.stroke();
-    ctx.restore();
-
-    try {
-      const avatarImg = await fetchImage(thumbnail);
+      const bgUrl = "https://yoshikawa-bot.github.io/cache/images/f967b450.jpg";
+      const response = await fetch(bgUrl);
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const arrayBuffer = await response.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const bg = await loadImage(buffer);
+      
       ctx.save();
       ctx.beginPath();
-      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.roundRect(30, 30, W - 60, H - 60, 120);
       ctx.clip();
-      ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+      ctx.drawImage(bg, 0, 0, W, H);
       ctx.restore();
-    } catch {
+      
+    } catch (e) {
+      console.log("Erro ao carregar imagem de fundo, usando fallback:", e.message);
+      
       ctx.save();
-      ctx.fillStyle = 'rgba(255,255,255,0.1)';
       ctx.beginPath();
-      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.roundRect(30, 30, W - 60, H - 60, 120);
+      ctx.clip();
+      
+      const gradient = ctx.createRadialGradient(W/2, H/2, 0, W/2, H/2, Math.max(W, H)/2);
+      gradient.addColorStop(0, "#ffe5ed");
+      gradient.addColorStop(0.5, "#ffb3c8");
+      gradient.addColorStop(1, "#db7093");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, W, H);
       ctx.restore();
     }
 
-    const badgeR = 28;
-    const badgeCX = avatarX + avatarSize - 14;
-    const badgeCY = avatarY + avatarSize - 14;
-    ctx.save();
-    ctx.fillStyle = 'rgba(10,10,16,0.9)';
+    const cardW = 1200;
+    const cardH = 700;
+    const cardX = (W - cardW) / 2;
+    const cardY = (H - cardH) / 2;
+
+    ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+    ctx.shadowBlur = 60;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 25;
+    
+    ctx.fillStyle = COLOR_BASE_BG; 
     ctx.beginPath();
-    ctx.arc(badgeCX, badgeCY, badgeR + 4, 0, Math.PI * 2);
+    ctx.roundRect(cardX, cardY, cardW, cardH, 80);
     ctx.fill();
-    ctx.fillStyle = '#34C759';
-    ctx.beginPath();
-    ctx.arc(badgeCX, badgeCY, badgeR, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
+    
+    ctx.shadowColor = "transparent";
+    ctx.shadowBlur = 0;
 
-    const textX = avatarX + avatarSize + 80;
-    const textMaxW = bX + bW - PAD - textX;
+    const coverSize = 400;
+    const coverX = cardX + 80;
+    const coverY = cardY + 80;
 
-    const labelY = centerY - 120;
-    ctx.fillStyle = 'rgba(255,255,255,0.32)';
-    ctx.font = 'bold 28px Inter';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('NOVO MEMBRO', textX, labelY);
+    let thumbnailLoaded = false;
+    let dominantColor = COLOR_HIGHLIGHT;
 
-    const usernameY = labelY + 95;
-    const clampedTitle = truncate(ctx, title, 'bold 80px Inter', textMaxW);
-    ctx.fillStyle = '#FFFFFF';
-    ctx.font = 'bold 80px Inter';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText(clampedTitle, textX, usernameY);
+    if (thumbnail) {
+      try {
+        const response = await fetch(thumbnail);
+        if (response.ok) {
+          const buf = Buffer.from(await response.arrayBuffer());
+          const img = await loadImage(buf);
 
-    const subtitleY = usernameY + 52;
-    ctx.fillStyle = 'rgba(255,255,255,0.38)';
-    ctx.font = 'bold 34px Inter';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('entrou no grupo', textX, subtitleY);
+          ctx.save();
+          ctx.beginPath();
+          ctx.roundRect(coverX, coverY, coverSize, coverSize, 60);
+          ctx.clip();
+          ctx.drawImage(img, coverX, coverY, coverSize, coverSize);
+          ctx.restore();
 
-    const pillsY = subtitleY + 72;
-    const pills = [
-      { icon: '🛡', label: 'Leia as regras' },
-      { icon: '👥', label: 'Bem-vindo(a)' },
-      { icon: '✨', label: 'Novo membro' },
-    ];
+          const tempCanvas = createCanvas(coverSize, coverSize);
+          const tempCtx = tempCanvas.getContext('2d');
+          tempCtx.drawImage(img, 0, 0, coverSize, coverSize);
+          const imageData = tempCtx.getImageData(0, 0, coverSize, coverSize);
+          dominantColor = getDominantColor(imageData);
+          
+          const rgb = parseInt(dominantColor.replace("#", ""), 16);
+          const r = (rgb >> 16) & 0xff;
+          const g = (rgb >> 8) & 0xff;
+          const b = (rgb >> 0) & 0xff;
+          const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+          
+          if (brightness < 100) {
+            dominantColor = adjustColorBrightness(dominantColor, 40);
+          }
 
-    let pillCursor = textX;
-    const pillH = 64;
-    const pillR = 18;
-    const pillPadX = 30;
-    const pillGap = 18;
+          thumbnailLoaded = true;
+        }
+      } catch (e) {
+        console.log("Erro ao carregar thumbnail:", e);
+      }
+    }
 
-    ctx.font = 'bold 28px Inter';
-
-    for (const { icon, label } of pills) {
-      const textW = ctx.measureText(label).width;
-      const iconW = 38;
-      const pW = pillPadX + iconW + 14 + textW + pillPadX;
-
-      ctx.save();
-      roundRect(ctx, pillCursor, pillsY, pW, pillH, pillR);
-      ctx.fillStyle = 'rgba(255,255,255,0.09)';
+    if (!thumbnailLoaded) {
+      ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+      ctx.beginPath();
+      ctx.roundRect(coverX, coverY, coverSize, coverSize, 60);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
-      ctx.restore();
 
-      ctx.font = 'bold 28px Inter';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(icon, pillCursor + pillPadX, pillsY + pillH / 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.62)';
-      ctx.fillText(label, pillCursor + pillPadX + iconW + 14, pillsY + pillH / 2);
-      ctx.fillStyle = 'rgba(255,255,255,0.62)';
-
-      pillCursor += pW + pillGap;
+      ctx.fillStyle = "#fff";
+      ctx.font = "bold 180px Inter";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("👤", coverX + coverSize/2, coverY + coverSize/2);
     }
 
-    const footerDivY = bY + bH - 120;
-    ctx.save();
-    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
-    ctx.lineWidth = 1;
+    COLOR_HIGHLIGHT = dominantColor;
+
+    const textX = coverX + coverSize + 60;
+    let textY = coverY + 150;
+
+    ctx.fillStyle = COLOR_TEXT_TITLE;
+    ctx.font = "bold 80px Inter";
+    ctx.textAlign = "left";
+    ctx.fillText("Bem-vindo(a)!", textX, textY);
+
+    textY += 120;
+
+    ctx.fillStyle = COLOR_HIGHLIGHT;
+    ctx.font = "bold 70px Inter";
+    ctx.fillText("Leia as regras", textX, textY);
+
+    const progressY = cardY + cardH - 150;
+    const barW = 800;
+    const barX = cardX + (cardW - barW) / 2;
+    const barThickness = 25;
+
+    const gradient = ctx.createLinearGradient(barX, progressY, barX + barW, progressY);
+    gradient.addColorStop(0, COLOR_HIGHLIGHT);
+    gradient.addColorStop(1, adjustColorBrightness(COLOR_HIGHLIGHT, 30));
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
-    ctx.moveTo(bX + PAD, footerDivY);
-    ctx.lineTo(bX + bW - PAD, footerDivY);
-    ctx.stroke();
-    ctx.restore();
-
-    const footerY = footerDivY + 55;
-    const footerItems = [
-      { icon: '#', label: 'Geral' },
-      { icon: '🔔', label: 'Avisos' },
-      { icon: '⭐', label: 'Destaques' },
-    ];
-
-    ctx.font = 'bold 26px Inter';
-    let footerCursor = bX + PAD;
-    for (const { icon, label } of footerItems) {
-      ctx.fillStyle = 'rgba(255,255,255,0.22)';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(`${icon}  ${label}`, footerCursor, footerY);
-      footerCursor += ctx.measureText(`${icon}  ${label}`).width + 60;
-    }
-
-    ctx.fillStyle = 'rgba(255,255,255,0.18)';
-    ctx.font = 'bold 26px Inter';
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
-
-    const onlineDotX = bX + bW - PAD - 80;
-    ctx.fillText('online', bX + bW - PAD, footerY);
-    ctx.save();
-    ctx.fillStyle = '#34C759';
-    ctx.beginPath();
-    ctx.arc(onlineDotX, footerY, 10, 0, Math.PI * 2);
+    ctx.roundRect(barX, progressY, barW, barThickness, barThickness / 2);
     ctx.fill();
-    ctx.restore();
 
-    res.setHeader('Content-Type', 'image/png');
-    res.send(canvas.toBuffer('image/png'));
+    const statusY = progressY + barThickness + 45;
+    ctx.font = "bold 40px Inter";
+    ctx.fillStyle = COLOR_TEXT_TIME;
+    ctx.textAlign = "center";
+    ctx.fillText("YOSHIKAWA BOT", barX + barW / 2, statusY);
+
+    const buffer = canvas.toBuffer('image/png');
+    res.setHeader("Content-Type", "image/png");
+    res.send(buffer);
+
   } catch (e) {
-    console.error('[generate-banner-v3]', e.message);
-    res.status(500).json({ error: 'Erro ao gerar imagem', message: e.message });
+    console.error("Erro geral:", e);
+    res.status(500).json({ error: "Erro ao gerar imagem", message: e.message });
   }
 }
 
-function truncate(ctx, text, font, maxWidth) {
-  ctx.font = font;
+function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
-  let t = text;
-  while (ctx.measureText(t + '…').width > maxWidth && t.length > 1) t = t.slice(0, -1);
-  return t + '…';
-}
+  let tmp = text;
+  while (ctx.measureText(tmp + "...").width > maxWidth && tmp.length > 1) {
+    tmp = tmp.slice(0, -1);
+  }
+  return tmp + "...";
+                               }
