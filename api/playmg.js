@@ -177,7 +177,7 @@ export default async function handler(req, res) {
 
     let avatarImg = null;
     try {
-        const response = await fetch('https://yoshikawa-bot.github.io/cache/images/8c5603b3.jpg');
+        const response = await fetch('https://yoshikawa-bot.github.io/cache/images/b9c703b8.jpg');
         const buf = Buffer.from(await response.arrayBuffer());
         avatarImg = await loadImage(buf);
     } catch (e) { }
