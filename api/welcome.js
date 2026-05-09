@@ -1,15 +1,3 @@
-/**
- * Vercel Canvas API — Welcome / Goodbye
- * Deploy em: /api/welcome.js
- *
- * Query params (GET) ou body (POST):
- *   type     — 'welcome' | 'goodbye'        (default: 'welcome')
- *   avatar   — URL da foto de perfil        (default: placeholder)
- *   username — Nome real do usuário         (default: 'Usuário')
- *   date     — Data no formato DD/MM/AAAA   (default: hoje)
- *   message  — Texto do rodapé (opcional)
- */
-
 import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,8 +10,6 @@ try {
   if (!GlobalFonts.has('Inter')) GlobalFonts.registerFromPath(fontPath, 'Inter');
 } catch (_) {}
 
-/* ─── helpers ─── */
-
 function truncateText(ctx, text, maxWidth) {
   if (ctx.measureText(text).width <= maxWidth) return text;
   let tmp = text;
@@ -32,12 +18,8 @@ function truncateText(ctx, text, maxWidth) {
   return tmp + '…';
 }
 
-/**
- * Pill glassmórfica idêntica às do canvas de streaming.
- * Usa a imagem de fundo com blur como base + sobreposição escura.
- */
 function drawPill(ctx, bgImg, x, y, w, h, text, W, H) {
-  /* fundo blurrado recortado no shape da pill */
+
   ctx.save();
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, h / 2);
@@ -53,22 +35,18 @@ function drawPill(ctx, bgImg, x, y, w, h, text, W, H) {
   ctx.fillRect(x, y, w, h);
   ctx.restore();
 
-  /* borda sutil */
   ctx.strokeStyle = 'rgba(255,255,255,0.15)';
   ctx.lineWidth   = 1;
   ctx.beginPath();
   ctx.roundRect(x, y, w, h, h / 2);
   ctx.stroke();
 
-  /* texto */
   ctx.font         = 'bold 26px Inter, sans-serif';
   ctx.fillStyle    = 'rgba(255,255,255,0.92)';
   ctx.textAlign    = 'left';
   ctx.textBaseline = 'middle';
   ctx.fillText(text, x + 28, y + h / 2);
 }
-
-/* ─── handler ─── */
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin',  '*');
@@ -85,9 +63,8 @@ export default async function handler(req, res) {
     const date     = q?.date     || new Date().toLocaleDateString('pt-BR');
     const message  = q?.message  != null
       ? q.message
-      : (type === 'welcome' ? 'leia as regras antes de interagir' : '');
+      : (type === 'welcome' ? 'Leia as regras antes de interagir' : '');
 
-    /* ── dimensões ── */
     const FINAL = 1080;
     const SCALE = 0.92;
     const SIZE  = FINAL * SCALE;          // área real do card
@@ -100,21 +77,17 @@ export default async function handler(req, res) {
     const canvas = createCanvas(FINAL, FINAL);
     const ctx    = canvas.getContext('2d');
 
-    /* ── espaço de desenho escalado ── */
     ctx.save();
     ctx.translate(OFF, OFF);
     ctx.scale(SF, SF);
 
-    /* clip rounded card */
     ctx.beginPath();
     ctx.roundRect(0, 0, W, H, RADIUS);
     ctx.clip();
 
-    /* base preta */
     ctx.fillStyle = '#0d0d0f';
     ctx.fillRect(0, 0, W, H);
 
-    /* ── carrega avatar ── */
     let avatarImg = null;
     if (avatar) {
       try {
@@ -124,9 +97,7 @@ export default async function handler(req, res) {
     }
 
     const PAD    = 64;
-    const INFO_Y = H - 340;   // início da zona de texto inferior
-
-    /* ── bg: avatar com blur (como o poster do streaming) ── */
+    const INFO_Y = H - 340;   
     if (avatarImg) {
       const sc = Math.max(W / avatarImg.width, H / avatarImg.height);
       const pw = avatarImg.width * sc, ph = avatarImg.height * sc;
@@ -137,11 +108,9 @@ export default async function handler(req, res) {
       ctx.globalAlpha = 1;
     }
 
-    /* overlay escuro sobre o bg borrado */
     ctx.fillStyle = 'rgba(0,0,0,0.52)';
     ctx.fillRect(0, 0, W, H);
 
-    /* gradiente na zona inferior (mesmo do streaming) */
     const grd = ctx.createLinearGradient(0, INFO_Y - 280, 0, H);
     grd.addColorStop(0,    'rgba(0,0,0,0)');
     grd.addColorStop(0.25, 'rgba(0,0,0,0.45)');
@@ -150,12 +119,10 @@ export default async function handler(req, res) {
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, W, H);
 
-    /* ── círculo central com a foto ── */
     const CR  = 170;                       // raio do círculo
     const CX  = W / 2;
     const CY  = INFO_Y / 2 + 20;          // centralizado na zona superior
 
-    /* sombra do círculo */
     ctx.save();
     ctx.shadowColor  = 'rgba(0,0,0,0.7)';
     ctx.shadowBlur   = 48;
@@ -167,20 +134,17 @@ export default async function handler(req, res) {
     ctx.restore();
 
     if (avatarImg) {
-      /* avatar recortado no círculo */
       ctx.save();
       ctx.beginPath();
       ctx.arc(CX, CY, CR, 0, Math.PI * 2);
       ctx.clip();
 
-      /* cover-fit: maior dimensão preenche o diâmetro */
       const d  = CR * 2;
       const sc = Math.max(d / avatarImg.width, d / avatarImg.height);
       const pw = avatarImg.width * sc, ph = avatarImg.height * sc;
       ctx.drawImage(avatarImg, CX - pw / 2, CY - ph / 2, pw, ph);
       ctx.restore();
     } else {
-      /* placeholder */
       ctx.save();
       ctx.beginPath();
       ctx.arc(CX, CY, CR, 0, Math.PI * 2);
@@ -189,14 +153,12 @@ export default async function handler(req, res) {
       ctx.restore();
     }
 
-    /* borda do círculo */
     ctx.strokeStyle = 'rgba(255,255,255,0.22)';
     ctx.lineWidth   = 5;
     ctx.beginPath();
     ctx.arc(CX, CY, CR, 0, Math.PI * 2);
     ctx.stroke();
 
-    /* ── pills superiores (topo esquerdo, igual ao streaming) ── */
     const PILL_H = 44;
     const PILL_Y = PAD;
 
@@ -210,8 +172,7 @@ export default async function handler(req, res) {
     const p2W    = ctx.measureText(p2Text).width + 56;
     drawPill(ctx, avatarImg, PAD + p1W + 16, PILL_Y, p2W, PILL_H, p2Text, W, H);
 
-    /* ── título ── */
-    const titleText = type === 'welcome' ? 'Bem-vindo(a) ao grupo' : 'Até logo!';
+    const titleText = type === 'welcome' ? 'Bem-vindo(a) ao grupo!' : 'Até logo!';
     let titleSize   = 72;
     ctx.font = `bold ${titleSize}px Inter, sans-serif`;
     while (ctx.measureText(titleText).width > W - PAD * 2 && titleSize > 36) {
@@ -225,7 +186,6 @@ export default async function handler(req, res) {
 
     const afterTitle = INFO_Y + titleSize * 1.2 + 16;
 
-    /* ── data • @nome ── */
     ctx.font         = '500 34px Inter, sans-serif';
     ctx.fillStyle    = 'rgba(255,255,255,0.65)';
     ctx.textBaseline = 'top';
@@ -238,7 +198,6 @@ export default async function handler(req, res) {
 
     const afterInfo = afterTitle + 52;
 
-    /* ── rodapé ── */
     if (message) {
       ctx.font         = '500 30px Inter, sans-serif';
       ctx.fillStyle    = 'rgba(255,255,255,0.45)';
